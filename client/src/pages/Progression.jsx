@@ -2,54 +2,46 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import { getStage } from "../components/DesignSystem";
 
-const T = {
-  navy:"#0a1628", teal:"#00d4aa", tealDim:"rgba(0,212,170,0.12)",
-  border:"rgba(255,255,255,0.08)", slate:"rgba(255,255,255,0.45)",
-  slateD:"rgba(255,255,255,0.22)", navyCard:"rgba(255,255,255,0.04)",
-  red:"#ff6b6b", amber:"#fbbf24", orange:"#fb923c",
-};
-
-const STAGE_META = {
-  "Non-Demented / Healthy":       { color:"#00d4aa", grade:"A", short:"Healthy" },
-  "Very Mild Demented (MCI)":     { color:"#fbbf24", grade:"B", short:"V.Mild" },
-  "Mild Alzheimer's Disease":     { color:"#fb923c", grade:"C", short:"Mild" },
-  "Moderate Alzheimer's Disease": { color:"#ff6b6b", grade:"D", short:"Moderate" },
-};
-const getStage = (l) => STAGE_META[l] || { color:T.teal, grade:"?", short:"Unknown" };
-
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:#0a1628;color:#fff;-webkit-font-smoothing:antialiased;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-.au{animation:fadeUp .4s cubic-bezier(.22,.68,0,1.1) both}
-.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:99px}
-@media(max-width:860px){.prog-layout{flex-direction:column!important;}.prog-sidenav{width:100%!important;height:auto!important;flex-direction:row!important;position:relative!important;overflow-x:auto;}}
-@media(max-width:640px){.prog-grid{grid-template-columns:1fr!important;}}
-`;
-
-function SideNav({ active }) {
+function SideNav() {
+  const navigate = useNavigate();
   const { logout } = useAuth();
+  const startAssessment = async (path) => {
+    try { const { data } = await api.post("/user/sessions"); navigate(`${path}?session_id=${data.session?.id||""}`); }
+    catch { navigate(path); }
+  };
+  const links = [
+    { icon:"🏠", label:"Dashboard",   path:"/dashboard",      active:false, session:false },
+    { icon:"📈", label:"Progression", path:"/progression",    active:true,  session:false },
+    { icon:"📄", label:"Reports",     path:"/reports",        active:false, session:false },
+    { icon:"👤", label:"Demographics",path:"/demographics",   active:false, session:true  },
+    { icon:"🧠", label:"Cognitive",   path:"/cognitive-test", active:false, session:true  },
+    { icon:"🔬", label:"MRI Upload",  path:"/mri-upload",     active:false, session:true  },
+    { icon:"⚙️", label:"Settings",    path:"/settings",       active:false, session:false },
+  ];
   return (
-    <div className="prog-sidenav" style={{ width:220, flexShrink:0, background:"rgba(0,0,0,0.3)", borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", padding:"28px 0", position:"sticky", top:0, height:"100vh", overflowY:"auto" }}>
-      <div style={{ padding:"0 22px 24px", borderBottom:`1px solid ${T.border}`, marginBottom:20 }}>
+    <div className="sidebar">
+      <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:34, height:34, borderRadius:9, background:T.teal, color:T.navy, fontFamily:"'Instrument Serif',serif", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>N</div>
-          <div><div style={{ fontSize:14, fontWeight:600, color:"#fff" }}>NeuroScan</div><div style={{ fontSize:10, color:T.slateD }}>Patient Portal</div></div>
+          <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Instrument Serif',serif", fontSize:20, color:"var(--bg-main)", fontWeight:600, flexShrink:0 }}>N</div>
+          <div><div style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)" }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>Patient Portal</div></div>
         </div>
       </div>
-      {[["📊","Dashboard","/dashboard",""],["📈","Progression","/progression","prog"],["📄","Reports","/reports",""],["🧠","Cognitive","/cognitive-test",""],["🔬","MRI","/mri-upload",""]].map(([ic,lb,hr,id])=>(
-        <a key={lb} href={hr} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", margin:"0 8px 2px", borderRadius:10, background:id==="prog"?T.tealDim:"transparent", textDecoration:"none" }}>
-          <span style={{ fontSize:16 }}>{ic}</span>
-          <span style={{ fontSize:13, fontWeight:id==="prog"?600:400, color:id==="prog"?T.teal:"rgba(255,255,255,0.4)" }}>{lb}</span>
-          {id==="prog" && <div style={{ width:5, height:5, borderRadius:"50%", background:T.teal, marginLeft:"auto" }} />}
-        </a>
-      ))}
-      <div style={{ marginTop:"auto", padding:"18px 14px 0", borderTop:`1px solid ${T.border}` }}>
-        <button onClick={logout} style={{ width:"100%", padding:"9px 14px", background:"rgba(255,107,107,0.08)", border:"1px solid rgba(255,107,107,0.2)", borderRadius:9, color:T.red, fontSize:13, cursor:"pointer" }}>🚪 Sign Out</button>
+      <div style={{ flex:1, padding:"0 8px" }}>
+        {links.map(({ icon, label, path, active, session }) => (
+          <div key={label} className={`nav-link ${active ? "active" : ""}`}
+            onClick={() => session ? startAssessment(path) : navigate(path)}
+            style={{ cursor:"pointer" }}>
+            <div style={{ fontSize:16, width:24, textAlign:"center" }}>{icon}</div>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:"16px", borderTop:"1px solid var(--border-subtle)" }}>
+        <button onClick={logout} className="btn-secondary" style={{ width:"100%", color:"var(--accent-red)", borderColor:"transparent" }}>
+          <span>🚪</span> Sign out
+        </button>
       </div>
     </div>
   );
@@ -57,11 +49,11 @@ function SideNav({ active }) {
 
 function LineChart({ sessions }) {
   if (!sessions?.length) return null;
-  const W = 600, H = 160, PAD = { t:10, r:20, b:30, l:36 };
+  const W = 600, H = 200, PAD = { t:20, r:20, b:40, l:45 };
   const cW = W - PAD.l - PAD.r, cH = H - PAD.t - PAD.b;
   const vals = sessions.map(s => s.ad_percentage || 0);
-  const minV = Math.max(0, Math.min(...vals) - 5);
-  const maxV = Math.min(100, Math.max(...vals) + 5);
+  const minV = Math.max(0, Math.min(...vals) - 10);
+  const maxV = Math.min(100, Math.max(...vals) + 10);
   const scaleX = i => PAD.l + (i / (sessions.length - 1 || 1)) * cW;
   const scaleY = v => PAD.t + cH - ((v - minV) / (maxV - minV || 1)) * cH;
 
@@ -74,34 +66,30 @@ function LineChart({ sessions }) {
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow:"visible" }}>
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={T.teal} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={T.teal} stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--accent-teal)" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="var(--accent-teal)" stopOpacity="0" />
         </linearGradient>
       </defs>
       {/* Grid lines */}
       {yLines.map(v => (
         <g key={v}>
-          <line x1={PAD.l} y1={scaleY(v)} x2={W-PAD.r} y2={scaleY(v)} stroke="rgba(255,255,255,0.06)" strokeDasharray="4,4" />
-          <text x={PAD.l-6} y={scaleY(v)+4} fill="rgba(255,255,255,0.3)" fontSize="9" textAnchor="end" fontFamily="DM Mono">{v}</text>
+          <line x1={PAD.l} y1={scaleY(v)} x2={W-PAD.r} y2={scaleY(v)} stroke="rgba(255,255,255,0.08)" strokeDasharray="4,4" />
+          <text x={PAD.l-8} y={scaleY(v)+4} fill="var(--text-tertiary)" fontSize="11" textAnchor="end" className="mono">{v}</text>
         </g>
       ))}
-      {/* Stage zone bands */}
-      <rect x={PAD.l} y={scaleY(25)} width={cW} height={scaleY(0)-scaleY(25)} fill="rgba(0,212,170,0.03)" />
-      <rect x={PAD.l} y={scaleY(50)} width={cW} height={scaleY(25)-scaleY(50)} fill="rgba(251,191,36,0.03)" />
-      <rect x={PAD.l} y={scaleY(75)} width={cW} height={scaleY(50)-scaleY(75)} fill="rgba(251,146,60,0.03)" />
-      <rect x={PAD.l} y={scaleY(100)} width={cW} height={scaleY(75)-scaleY(100)} fill="rgba(255,107,107,0.03)" />
+      
       {/* Area fill */}
       <path d={area} fill="url(#areaGrad)" />
       {/* Line */}
-      <polyline points={pts} fill="none" stroke={T.teal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={pts} fill="none" stroke="var(--accent-teal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter:"drop-shadow(0 4px 6px rgba(20,184,166,0.3))" }} />
       {/* Data points */}
       {sessions.map((s, i) => {
         const sm = getStage(s.stage);
         const cx = scaleX(i), cy = scaleY(s.ad_percentage || 0);
         return (
           <g key={i}>
-            <circle cx={cx} cy={cy} r="5" fill={sm.color} stroke={T.navy} strokeWidth="2" />
-            <text x={cx} y={H - PAD.b + 16} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="middle" fontFamily="DM Mono">
+            <circle cx={cx} cy={cy} r="6" fill={sm.c} stroke="var(--bg-main)" strokeWidth="2" />
+            <text x={cx} y={H - PAD.b + 20} fill="var(--text-secondary)" fontSize="10" textAnchor="middle">
               {new Date(s.date).toLocaleDateString("en", { month:"short", day:"numeric" })}
             </text>
           </g>
@@ -119,17 +107,15 @@ export default function Progression() {
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   useEffect(() => {
-    const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s);
     Promise.all([
       api.get("/user/sessions"),
       api.get("/user/progression"),
     ]).then(([sessRes, progRes]) => {
-      const completed = sessRes.data.sessions.filter(s => s.is_complete);
+      const completed = sessRes.data.sessions.filter(s => s.stage_label !== null && s.final_ad_percentage !== null);
       setSessions(completed);
       setProgRecords(progRes.data.progression || []);
       setLoading(false);
     }).catch(() => setLoading(false));
-    return () => document.head.removeChild(s);
   }, []);
 
   const trendData = sessions.map(s => ({ ad_percentage: s.final_ad_percentage, stage: s.stage_label, date: s.created_at, session_id: s.id })).reverse();
@@ -138,150 +124,152 @@ export default function Progression() {
   const latestProg = progRecords[0];
 
   if (loading) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:T.navy }}>
-      <div style={{ width:28, height:28, border:`3px solid rgba(0,212,170,0.2)`, borderTopColor:T.teal, borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+    <div className="page-container" style={{ alignItems:"center", justifyContent:"center" }}>
+      <div className="spinner" style={{ marginBottom:16 }} />
+      <div style={{ color:"var(--text-secondary)" }}>Loading progression data…</div>
     </div>
   );
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:T.navy }} className="prog-layout">
+    <div className="page-container">
       <SideNav />
 
-      <div style={{ flex:1, overflowY:"auto" }}>
-        <div style={{ padding:"32px 32px 0" }}>
-          <div className="au">
-            <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.1em", color:T.teal, marginBottom:5, textTransform:"uppercase" }}>Disease Tracking</div>
-            <h1 style={{ fontFamily:"'Instrument Serif',serif", fontSize:36, color:"#fff", fontWeight:400, lineHeight:1.1, marginBottom:6 }}>
-              Progression<br /><em style={{ color:T.teal }}>Analysis</em>
-            </h1>
-            <p style={{ fontSize:13, color:T.slate }}>{sessions.length} session{sessions.length !== 1 ? "s" : ""} recorded</p>
+      <div className="main-content">
+        <div style={{ padding:"48px", maxWidth:1200, margin:"0 auto", width:"100%" }}>
+          <div className="animate-fade-up" style={{ marginBottom:48 }}>
+            <div className="badge badge-teal" style={{ marginBottom:12, background:"rgba(20, 184, 166, 0.1)", color:"var(--accent-teal)", border:"1px solid rgba(20, 184, 166, 0.2)" }}>Disease Tracking</div>
+            <h1 style={{ fontSize:38, marginBottom:8 }}>Progression <span className="serif" style={{ color:"var(--accent-teal)", fontStyle:"italic" }}>Analysis</span></h1>
+            <p style={{ color:"var(--text-secondary)", fontSize:15, maxWidth:500, lineHeight:1.6 }}>
+              {sessions.length} session{sessions.length !== 1 ? "s" : ""} recorded. Track changes in your Alzheimer's Disease risk profile over time.
+            </p>
           </div>
-        </div>
 
-        <div style={{ padding:"24px 32px 40px", display:"flex", flexDirection:"column", gap:20 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
 
-          {/* Summary badges */}
-          {latestProg && (
-            <div className="au" style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-              {[
-                { label:"Latest AD%",     val:`${(sessions[0]?.final_ad_percentage||0).toFixed(1)}%`,  color:selStage?.color||T.teal },
-                { label:"Change",         val:`${latestProg.delta_ad_percentage>0?"+":""}${latestProg.delta_ad_percentage?.toFixed(1)}%`, color:latestProg.delta_ad_percentage>0?T.red:T.teal },
-                { label:"Trend",          val:latestProg.progression_label,  color:latestProg.delta_ad_percentage>0?T.red:latestProg.delta_ad_percentage<0?T.teal:T.amber },
-                { label:"Cognitive Δ",    val:`${latestProg.delta_cognitive>0?"+":""}${latestProg.delta_cognitive?.toFixed(1)}`, color:latestProg.delta_cognitive<0?T.red:T.teal },
-              ].map(({ label, val, color }) => (
-                <div key={label} style={{ padding:"12px 18px", background:T.navyCard, border:`1px solid ${T.border}`, borderRadius:12 }}>
-                  <div style={{ fontSize:10, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:5 }}>{label}</div>
-                  <div style={{ fontFamily:"'Instrument Serif',serif", fontSize:22, color, lineHeight:1 }}>{val}</div>
-                </div>
-              ))}
-              <div style={{ padding:"12px 18px", background:`${latestProg.delta_ad_percentage>0?"rgba(255,107,107,0.08)":"rgba(0,212,170,0.08)"}`, border:`1px solid ${latestProg.delta_ad_percentage>0?"rgba(255,107,107,0.2)":"rgba(0,212,170,0.2)"}`, borderRadius:12, maxWidth:340 }}>
-                <div style={{ fontSize:10, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:5 }}>Analysis</div>
-                <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", lineHeight:1.5 }}>{latestProg.trend_details}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Line chart */}
-          <div className="au d1" style={{ background:T.navyCard, border:`1px solid ${T.border}`, borderRadius:20, padding:"22px 24px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-              <div>
-                <div style={{ fontSize:14, fontWeight:600, color:"#fff", marginBottom:3 }}>AD Risk Over Time</div>
-                <div style={{ fontSize:12, color:T.slateD }}>All completed sessions</div>
-              </div>
-              <div style={{ display:"flex", gap:10 }}>
-                {[{ c:"#00d4aa",l:"Healthy" },{ c:"#fbbf24",l:"V.Mild" },{ c:"#fb923c",l:"Mild" },{ c:"#ff6b6b",l:"Moderate" }].map(({ c,l }) => (
-                  <div key={l} style={{ display:"flex", alignItems:"center", gap:5 }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:c }} />
-                    <span style={{ fontSize:10, color:T.slateD }}>{l}</span>
+            {/* Summary badges */}
+            {latestProg && (
+              <div className="animate-fade-up delay-100" style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+                {[
+                  { label:"Latest AD Risk",     val:`${(sessions[0]?.final_ad_percentage||0).toFixed(1)}%`,  color:selStage?.c||"var(--accent-teal)" },
+                  { label:"Risk Change",         val:`${latestProg.delta_ad_percentage>0?"+":""}${latestProg.delta_ad_percentage?.toFixed(1)}%`, color:latestProg.delta_ad_percentage>0?"var(--accent-red)":"var(--accent-teal)" },
+                  { label:"Overall Trend",          val:latestProg.progression_label,  color:latestProg.delta_ad_percentage>0?"var(--accent-red)":latestProg.delta_ad_percentage<0?"var(--accent-teal)":"var(--accent-amber)" },
+                  { label:"Cognitive Δ",    val:`${latestProg.delta_cognitive>0?"+":""}${latestProg.delta_cognitive?.toFixed(1)}`, color:latestProg.delta_cognitive<0?"var(--accent-red)":"var(--accent-teal)" },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="glass-panel" style={{ padding:"20px 24px", flex:"1" }}>
+                    <div style={{ fontSize:11, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>{label}</div>
+                    <div className="serif" style={{ fontSize:36, color, lineHeight:1 }}>{val}</div>
                   </div>
                 ))}
-              </div>
-            </div>
-            {trendData.length >= 2 ? <LineChart sessions={trendData} /> : (
-              <div style={{ textAlign:"center", padding:"28px", color:T.slateD, fontSize:13 }}>Complete at least 2 assessments to see the trend chart.</div>
-            )}
-          </div>
-
-          {/* Session selector + detail */}
-          {sessions.length > 0 && (
-            <div style={{ display:"flex", gap:20, flexWrap:"wrap" }}>
-              {/* Session list */}
-              <div className="au d2" style={{ width:240, flexShrink:0, background:T.navyCard, border:`1px solid ${T.border}`, borderRadius:20, padding:20, display:"flex", flexDirection:"column", gap:8, maxHeight:400, overflowY:"auto" }}>
-                <div style={{ fontSize:12, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>Sessions</div>
-                {sessions.map((s, i) => {
-                  const sm2 = getStage(s.stage_label);
-                  const isSel = i === selectedIdx;
-                  return (
-                    <div key={s.id} onClick={() => setSelectedIdx(i)} style={{ padding:"11px 13px", borderRadius:11, border:`1px solid ${isSel?`${sm2.color}44`:T.border}`, background:isSel?`${sm2.color}0a`:"rgba(255,255,255,0.02)", cursor:"pointer", transition:"all 0.15s" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                        <div style={{ fontSize:12, fontWeight:isSel?600:400, color:isSel?"#fff":"rgba(255,255,255,0.6)" }}>Session #{s.id}</div>
-                        <div style={{ fontSize:13, fontWeight:600, color:sm2.color }}>{(s.final_ad_percentage||0).toFixed(1)}%</div>
-                      </div>
-                      <div style={{ fontSize:10, color:T.slateD, marginTop:3 }}>{new Date(s.created_at).toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"})}</div>
-                      <div style={{ marginTop:5, padding:"2px 8px", display:"inline-block", borderRadius:99, background:`${sm2.color}18`, color:sm2.color, fontSize:10, fontWeight:600 }}>{sm2.short}</div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Session detail */}
-              {sel && (
-                <div className="au d3" style={{ flex:1, minWidth:260, background:T.navyCard, border:`1px solid ${T.border}`, borderRadius:20, padding:22 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18 }}>
-                    <div>
-                      <div style={{ fontSize:11, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:5 }}>Session #{sel.id}</div>
-                      <div style={{ fontFamily:"'Instrument Serif',serif", fontSize:28, color:selStage.color, lineHeight:1 }}>{sel.stage_label}</div>
-                      <div style={{ fontSize:12, color:T.slateD, marginTop:4 }}>{new Date(sel.created_at).toLocaleDateString("en",{ weekday:"long", day:"numeric", month:"long", year:"numeric" })}</div>
-                    </div>
-                    <div style={{ fontFamily:"'Instrument Serif',serif", fontSize:44, color:selStage.color, opacity:0.3 }}>{selStage.grade}</div>
-                  </div>
-
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }} className="prog-grid">
-                    {[
-                      ["AD Risk Score", `${(sel.final_ad_percentage||0).toFixed(1)}%`, selStage.color],
-                      ["Stage",         selStage.short, selStage.color],
-                      ["Completed",     sel.is_complete?"Yes":"No", sel.is_complete?T.teal:T.slateD],
-                      ["Session ID",    `#${sel.id}`, T.slateD],
-                    ].map(([l,v,c]) => (
-                      <div key={l} style={{ padding:"12px 14px", background:"rgba(255,255,255,0.03)", borderRadius:10, border:`1px solid ${T.border}` }}>
-                        <div style={{ fontSize:10, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{l}</div>
-                        <div style={{ fontSize:16, fontWeight:600, color:c }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* AD gauge */}
-                  <div>
-                    <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:T.slateD, marginBottom:6 }}>
-                      <span>AD Risk Gauge</span><span style={{ color:"rgba(255,255,255,0.65)", fontWeight:600 }}>{(sel.final_ad_percentage||0).toFixed(1)}/100</span>
-                    </div>
-                    <div style={{ height:8, background:"rgba(255,255,255,0.06)", borderRadius:99, overflow:"hidden" }}>
-                      <div style={{ height:"100%", width:`${sel.final_ad_percentage||0}%`, background:selStage.color, borderRadius:99, transition:"width 0.6s ease" }} />
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop:16, display:"flex", gap:8 }}>
-                    <button onClick={() => navigate(`/reports`)} style={{ flex:1, padding:"10px", background:"rgba(255,255,255,0.04)", border:`1px solid ${T.border}`, borderRadius:9, color:T.slateD, fontSize:12, cursor:"pointer" }}>
-                      📄 View Report
-                    </button>
-                    <button onClick={() => (async()=>{try{const{data}=await api.post("/user/sessions");navigate(`/demographics?session_id=${data.session?.id||""}`)}catch{navigate("/demographics")}})()} style={{ flex:1, padding:"10px", background:T.tealDim, border:`1px solid rgba(0,212,170,0.3)`, borderRadius:9, color:T.teal, fontSize:12, fontWeight:600, cursor:"pointer" }}>
-                      + New Session
-                    </button>
-                  </div>
+                <div className="glass-panel" style={{ padding:"20px 24px", background:`${latestProg.delta_ad_percentage>0?"rgba(239, 68, 68, 0.05)":"rgba(20, 184, 166, 0.05)"}`, borderColor:`${latestProg.delta_ad_percentage>0?"rgba(239, 68, 68, 0.2)":"rgba(20, 184, 166, 0.2)"}`, flex:"2" }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Clinical Context</div>
+                  <div style={{ fontSize:14, color:"var(--text-primary)", lineHeight:1.6 }}>{latestProg.trend_details}</div>
                 </div>
+              </div>
+            )}
+
+            {/* Line chart */}
+            <div className="glass-panel animate-fade-up delay-200" style={{ padding:"32px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+                <div>
+                  <h2 style={{ fontSize:18, fontWeight:600, color:"var(--text-primary)", marginBottom:4 }}>AD Risk Over Time</h2>
+                  <div style={{ fontSize:14, color:"var(--text-secondary)" }}>Timeline of all completed sessions</div>
+                </div>
+                <div style={{ display:"flex", gap:16 }}>
+                  {[{ c:"var(--accent-teal)",l:"Healthy" },{ c:"var(--accent-amber)",l:"V.Mild" },{ c:"#fb923c",l:"Mild" },{ c:"var(--accent-red)",l:"Moderate" }].map(({ c,l }) => (
+                    <div key={l} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <div style={{ width:10, height:10, borderRadius:"50%", background:c }} />
+                      <span style={{ fontSize:12, color:"var(--text-secondary)" }}>{l}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {trendData.length >= 2 ? <LineChart sessions={trendData} /> : (
+                <div style={{ textAlign:"center", padding:"48px", color:"var(--text-tertiary)", fontSize:15 }}>Complete at least 2 assessments to see the trend chart.</div>
               )}
             </div>
-          )}
 
-          {sessions.length === 0 && (
-            <div style={{ textAlign:"center", padding:"60px", background:T.navyCard, borderRadius:20, border:`1px solid ${T.border}` }}>
-              <div style={{ fontSize:44, marginBottom:16, opacity:0.2 }}>📈</div>
-              <div style={{ fontSize:16, color:"rgba(255,255,255,0.3)", marginBottom:20 }}>No sessions yet</div>
-              <button onClick={() => (async()=>{try{const{data}=await api.post("/user/sessions");navigate(`/demographics?session_id=${data.session?.id||""}`)}catch{navigate("/demographics")}})()} style={{ padding:"12px 24px", background:T.teal, color:T.navy, border:"none", borderRadius:10, fontSize:14, fontWeight:600, cursor:"pointer" }}>
-                Start First Assessment
-              </button>
-            </div>
-          )}
+            {/* Session selector + detail */}
+            {sessions.length > 0 && (
+              <div className="animate-fade-up delay-300" style={{ display:"flex", gap:24, flexWrap:"wrap" }}>
+                {/* Session list */}
+                <div className="glass-panel" style={{ width:300, flexShrink:0, padding:"24px", display:"flex", flexDirection:"column", gap:12, maxHeight:500, overflowY:"auto" }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Session History</div>
+                  {sessions.map((s, i) => {
+                    const sm2 = getStage(s.stage_label);
+                    const isSel = i === selectedIdx;
+                    return (
+                      <div key={s.id} onClick={() => setSelectedIdx(i)} style={{ padding:"16px", borderRadius:"var(--radius-md)", border:`1px solid ${isSel?sm2.c:"var(--border-subtle)"}`, background:isSel?sm2.bg:"var(--bg-panel)", cursor:"pointer", transition:"all 0.2s" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <div style={{ fontSize:14, fontWeight:isSel?600:500, color:isSel?"var(--text-primary)":"var(--text-secondary)" }}>Session #{s.id}</div>
+                          <div className="mono" style={{ fontSize:15, fontWeight:600, color:sm2.c }}>{(s.final_ad_percentage||0).toFixed(1)}%</div>
+                        </div>
+                        <div style={{ fontSize:12, color:"var(--text-tertiary)", marginTop:6 }}>{new Date(s.created_at).toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"})}</div>
+                        <div style={{ marginTop:8, padding:"4px 10px", display:"inline-block", borderRadius:99, background:`${sm2.c}22`, color:sm2.c, fontSize:11, fontWeight:600 }}>{sm2.short}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Session detail */}
+                {sel && (
+                  <div className="glass-panel" style={{ flex:1, minWidth:320, padding:"32px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:32 }}>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Selected Session: #{sel.id}</div>
+                        <div className="serif" style={{ fontSize:38, color:selStage.c, lineHeight:1, marginBottom:8 }}>{sel.stage_label}</div>
+                        <div style={{ fontSize:14, color:"var(--text-secondary)" }}>{new Date(sel.created_at).toLocaleDateString("en",{ weekday:"long", day:"numeric", month:"long", year:"numeric" })}</div>
+                      </div>
+                      <div className="serif" style={{ fontSize:64, color:selStage.c, opacity:0.3 }}>{selStage.g}</div>
+                    </div>
+
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
+                      {[
+                        ["AD Risk Score", `${(sel.final_ad_percentage||0).toFixed(1)}%`, selStage.c],
+                        ["Stage",         selStage.short, selStage.c],
+                        ["Completed",     "Yes", "var(--accent-teal)"],
+                        ["Session ID",    `#${sel.id}`, "var(--text-secondary)"],
+                      ].map(([l,v,c]) => (
+                        <div key={l} style={{ padding:"16px 20px", background:"var(--bg-panel)", borderRadius:"var(--radius-md)", border:`1px solid var(--border-subtle)` }}>
+                          <div style={{ fontSize:11, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:6 }}>{l}</div>
+                          <div style={{ fontSize:18, fontWeight:600, color:c }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* AD gauge */}
+                    <div>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text-secondary)", marginBottom:8 }}>
+                        <span>AD Risk Gauge</span><span style={{ color:"var(--text-primary)", fontWeight:600 }}>{(sel.final_ad_percentage||0).toFixed(1)}/100</span>
+                      </div>
+                      <div style={{ height:8, background:"var(--bg-panel-hover)", borderRadius:99, overflow:"hidden" }}>
+                        <div style={{ height:"100%", width:`${sel.final_ad_percentage||0}%`, background:selStage.c, borderRadius:99, transition:"width 0.8s ease" }} />
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop:32, display:"flex", gap:16 }}>
+                      <button className="btn-secondary" onClick={() => navigate(`/results/${sel.id}`)} style={{ flex:1 }}>
+                        📄 View Report
+                      </button>
+                      <button className="btn-primary" onClick={() => (async()=>{try{const{data}=await api.post("/user/sessions");navigate(`/demographics?session_id=${data.session?.id||""}`)}catch{navigate("/demographics")}})()} style={{ flex:1 }}>
+                        + New Session
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {sessions.length === 0 && (
+              <div className="glass-panel animate-fade-up delay-200" style={{ textAlign:"center", padding:"80px 40px" }}>
+                <div style={{ fontSize:56, marginBottom:20, opacity:0.5 }}>📈</div>
+                <div style={{ fontSize:18, color:"var(--text-primary)", marginBottom:12, fontWeight:500 }}>No sessions yet</div>
+                <p style={{ fontSize:15, color:"var(--text-secondary)", marginBottom:32, maxWidth:400, margin:"0 auto 32px" }}>Complete the multi-modal assessment pipeline to track your disease progression.</p>
+                <button className="btn-primary" onClick={() => (async()=>{try{const{data}=await api.post("/user/sessions");navigate(`/demographics?session_id=${data.session?.id||""}`)}catch{navigate("/demographics")}})()}>
+                  Start First Assessment
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

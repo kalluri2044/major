@@ -2,102 +2,112 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-
-const T = {
-  navy:"#0a1628", teal:"#00d4aa", tealDim:"rgba(0,212,170,0.12)",
-  border:"rgba(255,255,255,0.08)", slate:"rgba(255,255,255,0.45)",
-  slateD:"rgba(255,255,255,0.22)", navyCard:"rgba(255,255,255,0.04)",
-  red:"#ff6b6b", amber:"#fbbf24",
-};
-
-const STAGE_META = {
-  "Non-Demented / Healthy":       { color:"#00d4aa", grade:"A", short:"Healthy" },
-  "Very Mild Demented (MCI)":     { color:"#fbbf24", grade:"B", short:"Very Mild" },
-  "Mild Alzheimer's Disease":     { color:"#fb923c", grade:"C", short:"Mild" },
-  "Moderate Alzheimer's Disease": { color:"#ff6b6b", grade:"D", short:"Moderate" },
-};
-const getStage = (l) => STAGE_META[l] || { color:T.teal, grade:"?", short:"Unknown" };
-
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:#0a1628;color:#fff;-webkit-font-smoothing:antialiased;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.au{animation:fadeUp .4s cubic-bezier(.22,.68,0,1.1) both}
-.d1{animation-delay:.07s}.d2{animation-delay:.14s}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:99px}
-@media(max-width:860px){.rpt-layout{flex-direction:column!important;}}
-@media(max-width:640px){.rpt-grid{grid-template-columns:1fr!important;}}
-`;
+import { getStage } from "../components/DesignSystem";
 
 function SideNav() {
+  const navigate = useNavigate();
   const { logout } = useAuth();
+  const startAssessment = async (path) => {
+    try { const { data } = await api.post("/user/sessions"); navigate(`${path}?session_id=${data.session?.id||""}`); }
+    catch { navigate(path); }
+  };
+  const links = [
+    { icon:"🏠", label:"Dashboard",   path:"/dashboard",      active:false, session:false },
+    { icon:"📈", label:"Progression", path:"/progression",    active:false, session:false },
+    { icon:"📄", label:"Reports",     path:"/reports",        active:true,  session:false },
+    { icon:"👤", label:"Demographics",path:"/demographics",   active:false, session:true  },
+    { icon:"🧠", label:"Cognitive",   path:"/cognitive-test", active:false, session:true  },
+    { icon:"🔬", label:"MRI Upload",  path:"/mri-upload",     active:false, session:true  },
+    { icon:"⚙️", label:"Settings",    path:"/settings",       active:false, session:false },
+  ];
   return (
-    <div style={{ width:220, flexShrink:0, background:"rgba(0,0,0,0.3)", borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", padding:"28px 0", position:"sticky", top:0, height:"100vh", overflowY:"auto" }}>
-      <div style={{ padding:"0 22px 24px", borderBottom:`1px solid ${T.border}`, marginBottom:20 }}>
+    <div className="sidebar">
+      <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:34, height:34, borderRadius:9, background:T.teal, color:T.navy, fontFamily:"'Instrument Serif',serif", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>N</div>
-          <div><div style={{ fontSize:14, fontWeight:600, color:"#fff" }}>NeuroScan</div><div style={{ fontSize:10, color:T.slateD }}>Patient Portal</div></div>
+          <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Instrument Serif',serif", fontSize:20, color:"var(--bg-main)", fontWeight:600, flexShrink:0 }}>N</div>
+          <div><div style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)" }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>Patient Portal</div></div>
         </div>
       </div>
-      {[["📊","Dashboard","/dashboard",""],["📈","Progression","/progression",""],["📄","Reports","/reports","rpt"],["🧠","Cognitive","/cognitive-test",""],["🔬","MRI","/mri-upload",""]].map(([ic,lb,hr,id])=>(
-        <a key={lb} href={hr} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", margin:"0 8px 2px", borderRadius:10, background:id==="rpt"?T.tealDim:"transparent", textDecoration:"none" }}>
-          <span style={{ fontSize:16 }}>{ic}</span>
-          <span style={{ fontSize:13, fontWeight:id==="rpt"?600:400, color:id==="rpt"?T.teal:"rgba(255,255,255,0.4)" }}>{lb}</span>
-          {id==="rpt" && <div style={{ width:5, height:5, borderRadius:"50%", background:T.teal, marginLeft:"auto" }} />}
-        </a>
-      ))}
-      <div style={{ marginTop:"auto", padding:"18px 14px 0", borderTop:`1px solid ${T.border}` }}>
-        <button onClick={logout} style={{ width:"100%", padding:"9px 14px", background:"rgba(255,107,107,0.08)", border:"1px solid rgba(255,107,107,0.2)", borderRadius:9, color:T.red, fontSize:13, cursor:"pointer" }}>🚪 Sign Out</button>
+      <div style={{ flex:1, padding:"0 8px" }}>
+        {links.map(({ icon, label, path, active, session }) => (
+          <div key={label} className={`nav-link ${active ? "active" : ""}`}
+            onClick={() => session ? startAssessment(path) : navigate(path)}
+            style={{ cursor:"pointer" }}>
+            <div style={{ fontSize:16, width:24, textAlign:"center" }}>{icon}</div>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:"16px", borderTop:"1px solid var(--border-subtle)" }}>
+        <button onClick={logout} className="btn-secondary" style={{ width:"100%", color:"var(--accent-red)", borderColor:"transparent" }}>
+          <span>🚪</span> Sign out
+        </button>
       </div>
     </div>
   );
 }
 
-/* PDF preview card */
 function ReportCard({ session, report, onGenerate, onDownload, generating, idx }) {
-  const sm = getStage(session?.stage_label);
+  const isCompleted = session && session.stage_label !== null && session.final_ad_percentage !== null;
+  const sm = isCompleted ? getStage(session?.stage_label) : null;
   const hasReport = !!report;
+
+  if (!isCompleted) {
+    return (
+      <div className="glass-panel animate-fade-up" style={{ animationDelay:`${idx*0.07}s`, padding:"24px", display:"flex", flexDirection:"column", gap:16, opacity: 0.7 }}>
+        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:11, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Session #{session?.id}</div>
+            <div style={{ fontSize:18, color:"var(--text-secondary)", fontWeight:500 }}>Incomplete</div>
+            <div style={{ fontSize:12, color:"var(--text-tertiary)", marginTop:4 }}>{session?.created_at ? new Date(session.created_at).toLocaleDateString("en",{ day:"numeric", month:"long", year:"numeric" }) : "—"}</div>
+          </div>
+          <div style={{ width:48, height:48, borderRadius:"var(--radius-sm)", background:"var(--bg-panel-hover)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, color:"var(--text-tertiary)", flexShrink:0 }}>⏳</div>
+        </div>
+        <div style={{ padding:"12px 16px", borderRadius:"var(--radius-md)", background:"var(--bg-panel-hover)", border:"1px solid var(--border-subtle)", display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"auto" }}>
+          <div style={{ fontSize:12, color:"var(--text-tertiary)" }}>Complete assessment first</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`au`} style={{ animationDelay:`${idx*0.07}s`, background:T.navyCard, border:`1px solid ${hasReport?`${sm.color}22`:T.border}`, borderRadius:20, padding:22, display:"flex", flexDirection:"column", gap:16 }}>
+    <div className="glass-panel animate-fade-up" style={{ animationDelay:`${idx*0.07}s`, padding:"24px", display:"flex", flexDirection:"column", gap:20, borderColor: hasReport ? sm?.c : "var(--border-subtle)" }}>
       {/* Top */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
         <div>
-          <div style={{ fontSize:11, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:5 }}>Session #{session?.id}</div>
-          <div style={{ fontFamily:"'Instrument Serif',serif", fontSize:20, color:sm.color, lineHeight:1.1 }}>{sm.short}</div>
-          <div style={{ fontSize:12, color:T.slateD, marginTop:4 }}>{session?.created_at ? new Date(session.created_at).toLocaleDateString("en",{ day:"numeric", month:"long", year:"numeric" }) : "—"}</div>
+          <div style={{ fontSize:11, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Session #{session?.id}</div>
+          <div className="serif" style={{ fontSize:28, color:sm?.c, lineHeight:1 }}>{sm?.short}</div>
+          <div style={{ fontSize:12, color:"var(--text-secondary)", marginTop:6 }}>{session?.created_at ? new Date(session.created_at).toLocaleDateString("en",{ day:"numeric", month:"long", year:"numeric" }) : "—"}</div>
         </div>
-        <div style={{ width:50, height:50, borderRadius:13, background:`${sm.color}14`, border:`1px solid ${sm.color}33`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Instrument Serif',serif", fontSize:24, color:sm.color, flexShrink:0 }}>{sm.grade}</div>
+        <div style={{ width:48, height:48, borderRadius:"var(--radius-sm)", background:sm?.bg, border:`1px solid ${sm?.c}`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Instrument Serif',serif", fontSize:24, color:sm?.c, flexShrink:0 }}>{sm?.g}</div>
       </div>
 
       {/* Score bar */}
       <div>
-        <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:T.slateD, marginBottom:5 }}>
-          <span>AD Risk Score</span><span style={{ color:"rgba(255,255,255,0.65)", fontWeight:600 }}>{(session?.final_ad_percentage||0).toFixed(1)}/100</span>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--text-secondary)", marginBottom:8 }}>
+          <span>AD Risk Score</span><span style={{ color:"var(--text-primary)", fontWeight:600 }}>{(session?.final_ad_percentage||0).toFixed(1)}/100</span>
         </div>
-        <div style={{ height:6, background:"rgba(255,255,255,0.06)", borderRadius:99, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${session?.final_ad_percentage||0}%`, background:sm.color, borderRadius:99, transition:"width 0.6s ease" }} />
+        <div style={{ height:6, background:"var(--bg-panel)", borderRadius:99, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${session?.final_ad_percentage||0}%`, background:sm?.c, borderRadius:99, transition:"width 0.6s ease" }} />
         </div>
       </div>
 
       {/* Report status */}
       {hasReport ? (
-        <div style={{ padding:"10px 14px", borderRadius:10, background:"rgba(0,212,170,0.06)", border:"1px solid rgba(0,212,170,0.2)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ padding:"12px 16px", borderRadius:"var(--radius-md)", background:"rgba(20, 184, 166, 0.1)", border:"1px solid rgba(20, 184, 166, 0.3)", display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"auto" }}>
           <div>
-            <div style={{ fontSize:12, fontWeight:600, color:T.teal, marginBottom:2 }}>✓ Report Ready</div>
-            <div style={{ fontSize:10, color:T.slateD }}>Generated {new Date(report.generated_at).toLocaleDateString()}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:"var(--accent-teal)", marginBottom:2 }}>✓ Report Ready</div>
+            <div style={{ fontSize:11, color:"var(--text-secondary)" }}>Generated {new Date(report.generated_at).toLocaleDateString()}</div>
           </div>
-          <button onClick={() => onDownload(session.id)} style={{ padding:"7px 14px", background:T.teal, color:T.navy, border:"none", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:5 }}>
-            ↓ PDF
+          <button className="btn-primary" onClick={() => onDownload(session.id)} style={{ padding:"8px 16px", fontSize:13 }}>
+            Download PDF
           </button>
         </div>
       ) : (
-        <div style={{ padding:"10px 14px", borderRadius:10, background:"rgba(255,255,255,0.03)", border:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div style={{ fontSize:12, color:T.slateD }}>No report generated yet</div>
-          <button onClick={() => onGenerate(session.id)} disabled={generating === session.id} style={{ padding:"7px 14px", background:generating===session.id?"rgba(0,212,170,0.2)":T.tealDim, color:T.teal, border:"1px solid rgba(0,212,170,0.3)", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:5 }}>
-            {generating === session.id ? <span style={{ width:12, height:12, border:"2px solid rgba(0,212,170,0.2)", borderTopColor:T.teal, borderRadius:"50%", animation:"spin 0.7s linear infinite", display:"inline-block" }} /> : "⚡"} Generate
+        <div style={{ padding:"12px 16px", borderRadius:"var(--radius-md)", background:"var(--bg-panel-hover)", border:"1px solid var(--border-subtle)", display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"auto" }}>
+          <div style={{ fontSize:12, color:"var(--text-secondary)" }}>No report generated</div>
+          <button className="btn-secondary" onClick={() => onGenerate(session.id)} disabled={generating === session.id} style={{ padding:"8px 16px", fontSize:13, color:"var(--accent-teal)", borderColor:"var(--accent-teal-dim)" }}>
+            {generating === session.id ? <span className="spinner" style={{ width:14, height:14, marginRight:6 }} /> : "⚡ "} Generate Data
           </button>
         </div>
       )}
@@ -114,18 +124,17 @@ export default function Reports() {
   const [toast,      setToast]      = useState(null);
 
   useEffect(() => {
-    const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s);
     Promise.all([api.get("/user/sessions"), api.get("/report/list")]).then(([sRes, rRes]) => {
-      setSessions(sRes.data.sessions.filter(s => s.is_complete));
+      // Include all sessions, but we'll mark the incomplete ones in UI
+      setSessions(sRes.data.sessions);
       setReports(rRes.data.reports || []);
       setLoading(false);
     }).catch(() => setLoading(false));
-    return () => document.head.removeChild(s);
   }, []);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
+    setTimeout(() => setToast(null), 4000);
   };
 
   const handleGenerate = async (sessionId) => {
@@ -148,69 +157,74 @@ export default function Reports() {
       a.href = url; a.download = `neuroscan_report_session_${sessionId}.pdf`;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
-      showToast("PDF downloaded!");
+      showToast("PDF downloaded successfully!");
     } catch { showToast("Download failed.", "error"); }
   };
 
   const getReport = (sessionId) => reports.find(r => r.session_id === sessionId);
 
   if (loading) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:T.navy }}>
-      <div style={{ width:28, height:28, border:`3px solid rgba(0,212,170,0.2)`, borderTopColor:T.teal, borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+    <div className="page-container">
+      <SideNav />
+      <div className="main-content" style={{ alignItems:"center", justifyContent:"center" }}>
+        <div className="spinner" style={{ marginBottom:16 }} />
+        <div style={{ color:"var(--text-secondary)" }}>Loading reports…</div>
+      </div>
     </div>
   );
 
-  const pending = sessions.filter(s => !getReport(s.id)).length;
-  const ready   = sessions.filter(s => getReport(s.id)).length;
+  const completedSessions = sessions.filter(s => s.stage_label !== null && s.final_ad_percentage !== null);
+  const pendingCount = completedSessions.filter(s => !getReport(s.id)).length;
+  const readyCount   = completedSessions.filter(s => getReport(s.id)).length;
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:T.navy }} className="rpt-layout">
+    <div className="page-container">
       <SideNav />
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast && (
-        <div style={{ position:"fixed", top:24, right:24, zIndex:999, padding:"12px 20px", borderRadius:12, background:toast.type==="error"?"rgba(255,107,107,0.15)":"rgba(0,212,170,0.15)", border:`1px solid ${toast.type==="error"?"rgba(255,107,107,0.35)":"rgba(0,212,170,0.35)"}`, color:toast.type==="error"?T.red:T.teal, fontSize:13, fontWeight:500, animation:"fadeUp 0.3s ease", backdropFilter:"blur(8px)" }}>
-          {toast.type==="error"?"✕ ":"✓ "}{toast.msg}
+        <div className="animate-fade-up" style={{ position:"fixed", top:32, right:32, zIndex:999, padding:"16px 24px", borderRadius:"var(--radius-md)", background:toast.type==="error"?"rgba(239, 68, 68, 0.15)":"rgba(20, 184, 166, 0.15)", border:`1px solid ${toast.type==="error"?"rgba(239, 68, 68, 0.4)":"rgba(20, 184, 166, 0.4)"}`, color:toast.type==="error"?"var(--accent-red)":"var(--accent-teal)", fontSize:14, fontWeight:500, backdropFilter:"blur(12px)", boxShadow:"var(--shadow-panel)", display:"flex", alignItems:"center", gap:12 }}>
+          <span style={{ fontSize:18 }}>{toast.type==="error"?"❌":"✅"}</span> {toast.msg}
         </div>
       )}
 
-      <div style={{ flex:1, overflowY:"auto" }}>
-        <div style={{ padding:"32px 32px 0" }}>
-          <div className="au">
-            <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.1em", color:T.teal, marginBottom:5, textTransform:"uppercase" }}>Clinical Records</div>
-            <h1 style={{ fontFamily:"'Instrument Serif',serif", fontSize:36, color:"#fff", fontWeight:400, lineHeight:1.1, marginBottom:6 }}>
-              Diagnostic<br /><em style={{ color:T.teal }}>Reports</em>
-            </h1>
+      <div className="main-content">
+        <div style={{ padding:"48px", maxWidth:1200, margin:"0 auto", width:"100%" }}>
+          <div className="animate-fade-up" style={{ marginBottom:48 }}>
+            <div className="badge badge-purple" style={{ marginBottom:12, background:"rgba(139, 92, 246, 0.1)", color:"var(--accent-purple)", border:"1px solid rgba(139, 92, 246, 0.2)" }}>Clinical Records</div>
+            <h1 style={{ fontSize:38, marginBottom:8 }}>Diagnostic <span className="serif" style={{ color:"var(--accent-purple)", fontStyle:"italic" }}>Reports</span></h1>
+            <p style={{ color:"var(--text-secondary)", fontSize:15, maxWidth:500, lineHeight:1.6 }}>
+              Generate, download, and review comprehensive PDF reports containing detailed analytical breakdowns of your ensemble AI assessments.
+            </p>
           </div>
-        </div>
 
-        <div style={{ padding:"24px 32px 40px" }}>
           {/* Summary bar */}
-          <div className="au" style={{ display:"flex", gap:14, marginBottom:24, flexWrap:"wrap" }}>
+          <div className="animate-fade-up delay-100" style={{ display:"flex", gap:24, marginBottom:40, flexWrap:"wrap" }}>
             {[
-              { label:"Total Sessions",   val:sessions.length, color:"#fff",  icon:"📋" },
-              { label:"Reports Ready",    val:ready,           color:T.teal,  icon:"✅" },
-              { label:"Pending Reports",  val:pending,         color:T.amber, icon:"⏳" },
+              { label:"Completed Sessions", val:completedSessions.length, color:"var(--text-primary)",  icon:"📋" },
+              { label:"Reports Ready",    val:readyCount,           color:"var(--accent-teal)",  icon:"✅" },
+              { label:"Pending Generation",  val:pendingCount,         color:"var(--accent-amber)", icon:"⏳" },
             ].map(({ label, val, color, icon }) => (
-              <div key={label} style={{ padding:"14px 20px", background:T.navyCard, border:`1px solid ${T.border}`, borderRadius:14, minWidth:140 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:6 }}>
-                  <span style={{ fontSize:16 }}>{icon}</span>
-                  <span style={{ fontSize:11, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</span>
+              <div key={label} className="glass-panel" style={{ padding:"24px", flex:"1", minWidth:200 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+                  <span style={{ fontSize:20 }}>{icon}</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.05em" }}>{label}</span>
                 </div>
-                <div style={{ fontFamily:"'Instrument Serif',serif", fontSize:28, color, lineHeight:1 }}>{val}</div>
+                <div className="serif" style={{ fontSize:36, color, lineHeight:1 }}>{val}</div>
               </div>
             ))}
-            {pending > 0 && (
-              <button onClick={() => sessions.filter(s => !getReport(s.id)).forEach(s => handleGenerate(s.id))}
-                style={{ padding:"14px 22px", background:T.tealDim, border:"1px solid rgba(0,212,170,0.3)", borderRadius:14, color:T.teal, fontSize:13, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:8 }}>
-                ⚡ Generate All Pending ({pending})
+            {pendingCount > 0 && (
+              <button className="btn-secondary" onClick={() => completedSessions.filter(s => !getReport(s.id)).forEach(s => handleGenerate(s.id))}
+                style={{ alignSelf:"stretch", display:"flex", alignItems:"center", gap:12, padding:"0 32px", color:"var(--accent-teal)", borderColor:"var(--accent-teal-dim)", background:"rgba(20, 184, 166, 0.05)" }}>
+                <span style={{ fontSize:20 }}>⚡</span>
+                <span>Generate All Pending ({pendingCount})</span>
               </button>
             )}
           </div>
 
           {/* Reports grid */}
           {sessions.length > 0 ? (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:16 }} className="rpt-grid">
+            <div className="animate-fade-up delay-200" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(340px, 1fr))", gap:24 }}>
               {sessions.map((session, i) => (
                 <ReportCard
                   key={session.id}
@@ -224,11 +238,12 @@ export default function Reports() {
               ))}
             </div>
           ) : (
-            <div style={{ textAlign:"center", padding:"60px", background:T.navyCard, borderRadius:20, border:`1px solid ${T.border}` }}>
-              <div style={{ fontSize:48, marginBottom:16, opacity:0.2 }}>📄</div>
-              <div style={{ fontSize:15, color:"rgba(255,255,255,0.3)", marginBottom:20 }}>No completed assessments yet</div>
-              <button onClick={() => (async()=>{try{const{data}=await api.post("/user/sessions");navigate(`/demographics?session_id=${data.session?.id||""}`)}catch{navigate("/demographics")}})()} style={{ padding:"12px 24px", background:T.teal, color:T.navy, border:"none", borderRadius:10, fontSize:14, fontWeight:600, cursor:"pointer" }}>
-                Start Your First Assessment
+            <div className="glass-panel animate-fade-up delay-200" style={{ textAlign:"center", padding:"80px 40px" }}>
+              <div style={{ fontSize:56, marginBottom:20, opacity:0.5 }}>📄</div>
+              <div style={{ fontSize:18, fontWeight:500, color:"var(--text-primary)", marginBottom:12 }}>No assessments found</div>
+              <p style={{ fontSize:15, color:"var(--text-secondary)", marginBottom:32, maxWidth:400, margin:"0 auto 32px" }}>Complete the multi-modal assessment pipeline to generate clinical diagnostic reports.</p>
+              <button className="btn-primary" onClick={() => (async()=>{try{const{data}=await api.post("/user/sessions");navigate(`/demographics?session_id=${data.session?.id||""}`)}catch{navigate("/demographics")}})()}>
+                Start First Assessment
               </button>
             </div>
           )}

@@ -72,7 +72,7 @@ def create_app():
         # Build not available yet — show helpful message
         return (
             "<h2 style='font-family:sans-serif;padding:40px;color:#0a1628'>"
-            "NeuroScan AI — API Server Running ✅<br/><br/>"
+            "NeuroScan AI -- API Server Running [OK]<br/><br/>"
             "<small style='color:#666'>React build not found.<br/>"
             "Run <code>cd client && npm install && npm run build</code> "
             "then restart this server, or run "
@@ -84,7 +84,7 @@ def create_app():
     # ── Create DB tables ──────────────────────────────────────────────────────
     with app.app_context():
         db.create_all()
-        print("✅ Database tables ready.")
+        print("[INFO] Database tables ready.")
 
     return app
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     app = create_app()
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_ENV", "development") != "production"
-    print(f"\n🧠 NeuroScan AI running → http://localhost:{port}")
+    print(f"\n[INFO] NeuroScan AI running -> http://localhost:{port}")
     print(f"   Mode  : {'development' if debug else 'production'}")
     print(f"   API   : http://localhost:{port}/api/")
     print(f"   React : http://localhost:{port}/\n")

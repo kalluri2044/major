@@ -1,0 +1,28 @@
+# ── Core Flask stack ──────────────────────────────────────────────────────────
+flask==3.0.3
+flask-cors==4.0.1
+flask-sqlalchemy==3.1.1
+flask-jwt-extended==4.6.0
+werkzeug==3.0.3
+sqlalchemy==2.0.31
+python-dotenv==1.0.1
+
+# ── PDF generation ────────────────────────────────────────────────────────────
+reportlab==4.2.2
+
+# ── Image / MRI processing ────────────────────────────────────────────────────
+pillow==10.4.0
+
+# ── ML (optional — install to use CNN models, otherwise mock mode is used) ────
+# tensorflow==2.16.1    # ~500 MB — uncomment to enable CNN inference
+# numpy==1.26.4
+# scikit-learn==1.5.1
+
+# ── MRI format support (optional) ────────────────────────────────────────────
+# pydicom==2.4.4        # DICOM (.dcm) files
+# nibabel==5.2.1        # NIfTI (.nii / .nii.gz) files
+
+# ── Training only (not needed to run the app) ─────────────────────────────────
+# matplotlib==3.9.1
+# seaborn==0.13.2
+# jupyter==1.0.0

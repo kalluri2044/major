@@ -1,0 +1,40 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Database
+*.db
+*.sqlite3
+
+# Uploads
+uploads/mri/
+uploads/reports/
+
+# Environment
+.env
+*.env
+
+# ML models (large files)
+models/*.h5
+models/*.pkl
+ml/data/
+
+# React
+client/node_modules/
+client/build/
+client/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

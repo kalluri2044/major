@@ -53,11 +53,19 @@ def dashboard():
     if not user:
         return jsonify({"error": "User not found."}), 404
 
-    # Latest completed session
-    latest_session = (
+    # Absolute latest session (regardless of completion)
+    latest_any = (
+        Session.query
+        .filter_by(user_id=user_id)
+        .order_by(Session.id.desc())
+        .first()
+    )
+
+    # Latest completed session for stats
+    latest_complete = (
         Session.query
         .filter_by(user_id=user_id, is_complete=True)
-        .order_by(Session.created_at.desc())
+        .order_by(Session.id.desc())
         .first()
     )
 
@@ -87,7 +95,8 @@ def dashboard():
 
     return jsonify({
         "user":             user.to_dict(),
-        "latest_session":   latest_session.to_dict() if latest_session else None,
+        "latest_session":   latest_complete.to_dict() if latest_complete else None,
+        "latest_any":       latest_any.to_dict() if latest_any else None,
         "progression":      latest_prog.to_dict()    if latest_prog    else None,
         "recommendation":   _build_rec_summary(latest_rec),
         "session_trend": [
@@ -201,6 +210,21 @@ def get_session(session_id):
         "progression":    prog.to_dict()  if prog      else None,
         "report":     report.to_dict()    if report    else None,
     }), 200
+
+
+@user_bp.route("/sessions/<int:session_id>", methods=["DELETE"])
+@jwt_required()
+def delete_session(session_id):
+    user_id = int(get_jwt_identity())
+    session = Session.query.filter_by(id=session_id, user_id=user_id).first()
+    if not session:
+        return jsonify({"error": "Session not found."}), 404
+    
+    # Cascade delete is handled by SQLAlchemy if configured, but let's be safe.
+    # Actually, let's just delete the session and let the DB foreign keys handle it or clean up manually.
+    db.session.delete(session)
+    db.session.commit()
+    return jsonify({"message": "Session deleted successfully."}), 200
 
 
 # ─────────────────────────────────────────────

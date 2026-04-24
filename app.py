@@ -62,11 +62,20 @@ def create_app():
         - Static assets are matched against client/build.
         - All other paths (SPA routes) fall through to index.html.
         """
+        # Exclude /api routes
+        if path.startswith("api/"):
+            return jsonify({"error": "Route not found"}), 404
+
         # If path exists as a file in BUILD_DIR, send it
         if path and os.path.exists(os.path.join(BUILD_DIR, path)):
             return send_from_directory(BUILD_DIR, path)
         
         # Otherwise, serve index.html (SPA fallback)
+        return send_from_directory(BUILD_DIR, "index.html")
+
+    # Final safety fallback for any stray 404s
+    @app.errorhandler(404)
+    def page_not_found(e):
         return send_from_directory(BUILD_DIR, "index.html")
 
     # ── Create DB tables ──────────────────────────────────────────────────────

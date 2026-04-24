@@ -61,12 +61,11 @@ export default function UserDashboard() {
     </div>
   );
 
-  const ls   = data?.latest_session;
-  // If fusion result doesn't exist, we consider it pending. We assume if AD percentage is > 0 and model completed it or something similar.
-  // Actually, wait: We will just check if `ls.status` is "completed", or we assume it's pending if there's an ongoing assessment.
-  // Let's just cleanly display "Pending" if the frontend determines it.
-  // Since we don't have the status field, we'll assume it's completed if `ls.final_ad_percentage` exists and we are not in a pending state.
+  const ls   = data?.latest_session; // latest complete
+  const la   = data?.latest_any;     // absolute latest (might be incomplete)
+  
   const isCompleted = ls && ls.stage_label !== null && ls.final_ad_percentage !== null;
+  const isPending   = la && !la.is_complete;
 
   const sm   = isCompleted ? getStage(ls.stage_label) : null;
   const prog = data?.progression;
@@ -79,8 +78,8 @@ export default function UserDashboard() {
 
   const kpis = [
     { label:"Total Sessions",  value: trend.length || 0, sub:"completed", color:"var(--accent-blue)", icon:"📋" },
-    { label:"Latest AD Risk",  value: scoreLabel, sub:subLabel, color: sm?.c || "var(--text-secondary)", icon:"🎯" },
-    { label:"Cognitive Score", value: cognitiveLabel, sub:"estimated",  color:"var(--accent-purple)", icon:"🧠" },
+    { label:"Latest AD Risk",  value: isPending ? "Wait" : scoreLabel, sub: isPending ? "In Progress" : subLabel, color: isPending ? "var(--accent-amber)" : (sm?.c || "var(--text-secondary)"), icon:"🎯" },
+    { label:"Cognitive Score", value: isPending ? "..." : cognitiveLabel, sub:"estimated",  color:"var(--accent-purple)", icon:"🧠" },
     { label:"Progression",     value: prog ? `${(prog?.delta_ad_percentage||0)>0?"+":""}${prog?.delta_ad_percentage?.toFixed(1) || 0}%` : "—", sub:prog?.progression_label||"No history", color: (prog?.delta_ad_percentage||0)>0 ? "var(--accent-red)" : (prog?.delta_ad_percentage||0)<0 ? "var(--accent-teal)" : "var(--accent-amber)", icon:"📈" },
   ];
 
@@ -121,19 +120,23 @@ export default function UserDashboard() {
           <div className="animate-fade-up delay-200" style={{ display:"flex", gap:24, marginBottom:32, flexWrap:"wrap" }}>
             {/* Score arc */}
             <div className="glass-panel" style={{ display:"flex", flexDirection:"column", alignItems:"center", minWidth:260, flex:"0 0 260px", justifyContent:"center", padding:"32px 24px" }}>
-              {isCompleted ? (
+              {isPending ? (
+                <div style={{ textAlign:"center" }}>
+                   <div style={{ fontSize:48, marginBottom:16, opacity:.8 }}>⏳</div>
+                   <div style={{ fontSize:15, fontWeight:600, color:"var(--accent-amber)", marginBottom:4 }}>Session #{la.id}</div>
+                   <div style={{ fontSize:13, color:"var(--text-secondary)", lineHeight:1.6, marginBottom:24 }}>Assessment Pending.<br />Complete all 3 stages.</div>
+                   <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                     <button className="btn-primary" style={{ width:"100%" }} onClick={() => navigate(`/demographics?session_id=${la.id}`)}>Resume →</button>
+                     <button className="btn-ghost" style={{ fontSize:12, padding:"8px" }} onClick={startNew}>Discard & Start Fresh</button>
+                   </div>
+                </div>
+              ) : isCompleted ? (
                 <>
                   <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.05em", textTransform:"uppercase", color:"var(--text-tertiary)", marginBottom:24 }}>AD Risk Score</div>
                   <ScoreArc score={ls.final_ad_percentage || 0} color={sm?.c || "var(--accent-teal)"} />
                   <div style={{ marginTop:24, padding:"8px 20px", borderRadius:99, background:sm?.bg, border:`1px solid ${sm?.c}`, color:sm?.c, fontSize:13, fontWeight:600, textAlign:"center" }}>{sm?.short || "—"}</div>
                   <div style={{ fontSize:12, color:"var(--text-tertiary)", marginTop:12 }}>{new Date(ls.created_at).toLocaleDateString("en",{day:"numeric",month:"long",year:"numeric"})}</div>
                 </>
-              ) : ls ? (
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:48, marginBottom:16, opacity:.8 }}>⏳</div>
-                  <div style={{ fontSize:15, color:"var(--text-secondary)", lineHeight:1.6, marginBottom:24 }}>Assessment Pending.<br />Complete all 3 stages.</div>
-                  <button className="btn-primary" onClick={() => navigate(`/demographics?session_id=${ls.id}`)}>Resume →</button>
-                </div>
               ) : (
                 <div style={{ textAlign:"center" }}>
                   <div style={{ fontSize:48, marginBottom:16, opacity:.5 }}>🧠</div>

@@ -93,13 +93,13 @@ class Session(db.Model):
     is_complete         = db.Column(db.Boolean, default=False)
     created_at          = db.Column(db.DateTime, default=datetime.utcnow)
 
-    cognitive_assessment = db.relationship("CognitiveAssessment", backref="session", uselist=False)
-    mri_scan             = db.relationship("MRIScan",             backref="session", uselist=False)
-    report               = db.relationship("Report",              backref="session", uselist=False)
-    recommendation       = db.relationship("Recommendation",      backref="session", uselist=False)
+    cognitive_assessment = db.relationship("CognitiveAssessment", backref="session", uselist=False, cascade="all, delete-orphan")
+    mri_scan             = db.relationship("MRIScan",             backref="session", uselist=False, cascade="all, delete-orphan")
+    report               = db.relationship("Report",              backref="session", uselist=False, cascade="all, delete-orphan")
+    recommendation       = db.relationship("Recommendation",      backref="session", uselist=False, cascade="all, delete-orphan")
     progression          = db.relationship(
         "ProgressionRecord", backref="session",
-        foreign_keys="ProgressionRecord.session_id_current", uselist=False
+        foreign_keys="ProgressionRecord.session_id_current", uselist=False, cascade="all, delete-orphan"
     )
 
     def to_dict(self):

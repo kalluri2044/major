@@ -5,10 +5,16 @@ import { LayoutDashboard, TrendingUp, FileText, UserCircle, BrainCircuit, Activi
 export function SideNav({ user, logout }) {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const startAssessment = async (path) => {
-    try { const { data } = await userAPI.startSession(); navigate(`${path}?session_id=${data.session?.id||""}`); }
-    catch { navigate(path); }
+  // Use proper params from URL if they exist
+  const searchParams = new URLSearchParams(location.search);
+  const currentSid = searchParams.get("session_id");
+
+  const handleNav = (link) => {
+    if (link.session && currentSid) {
+      navigate(`${link.path}?session_id=${currentSid}`);
+    } else {
+      navigate(link.path);
+    }
   };
   
   const links = [
@@ -37,7 +43,7 @@ export function SideNav({ user, logout }) {
           const isActive = location.pathname.startsWith(link.path);
           return (
             <div key={link.label} className={`nav-link ${isActive ? "active" : ""}`}
-              onClick={() => link.session ? startAssessment(link.path) : navigate(link.path)}
+              onClick={() => handleNav(link)}
               style={{ cursor:"pointer" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, opacity: isActive ? 1 : 0.6 }}>{link.icon}</div>
               <span style={{ fontWeight: isActive ? 600 : 500, color: isActive ? "var(--accent-indigo)" : "var(--text-secondary)" }}>{link.label}</span>

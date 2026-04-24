@@ -5,8 +5,9 @@ import api from "../services/api";
 import { getStage } from "../components/DesignSystem";
 
 import { SideNav } from "../components/SideNav";
+import { Trash2 } from "lucide-react";
 
-function ReportCard({ session, report, onGenerate, onDownload, generating, idx }) {
+function ReportCard({ session, report, onGenerate, onDownload, onDelete, generating, idx }) {
   const isCompleted = session && session.stage_label !== null && session.final_ad_percentage !== null;
   const sm = isCompleted ? getStage(session?.stage_label) : null;
   const hasReport = !!report;
@@ -20,7 +21,16 @@ function ReportCard({ session, report, onGenerate, onDownload, generating, idx }
             <div style={{ fontSize:18, color:"var(--text-secondary)", fontWeight:500 }}>Incomplete</div>
             <div style={{ fontSize:12, color:"var(--text-tertiary)", marginTop:4 }}>{session?.created_at ? new Date(session.created_at).toLocaleDateString("en",{ day:"numeric", month:"long", year:"numeric" }) : "—"}</div>
           </div>
-          <div style={{ width:48, height:48, borderRadius:"var(--radius-sm)", background:"var(--bg-panel-hover)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, color:"var(--text-tertiary)", flexShrink:0 }}>⏳</div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button 
+              onClick={() => onDelete(session.id)}
+              style={{ background:"rgba(239, 68, 68, 0.1)", border:"1px solid rgba(239, 68, 68, 0.2)", borderRadius:8, width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--accent-red)", cursor:"pointer" }}
+              title="Delete session"
+            >
+              <Trash2 size={16} />
+            </button>
+            <div style={{ width:48, height:48, borderRadius:"var(--radius-sm)", background:"var(--bg-panel-hover)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, color:"var(--text-tertiary)", flexShrink:0 }}>⏳</div>
+          </div>
         </div>
         <div style={{ padding:"12px 16px", borderRadius:"var(--radius-md)", background:"var(--bg-panel-hover)", border:"1px solid var(--border-subtle)", display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"auto" }}>
           <div style={{ fontSize:12, color:"var(--text-tertiary)" }}>Complete assessment first</div>
@@ -109,6 +119,17 @@ export default function Reports() {
     } finally { setGenerating(null); }
   };
 
+  const handleDelete = async (sessionId) => {
+    if (!window.confirm(`Are you sure you want to delete Session #${sessionId}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/user/sessions/${sessionId}`);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      showToast("Session deleted successfully.");
+    } catch {
+      showToast("Delete failed.", "error");
+    }
+  };
+
   const handleDownload = async (sessionId) => {
     try {
       const res = await api.get(`/report/download/${sessionId}`, { responseType: "blob" });
@@ -192,6 +213,7 @@ export default function Reports() {
                   report={getReport(session.id)}
                   onGenerate={handleGenerate}
                   onDownload={handleDownload}
+                  onDelete={handleDelete}
                   generating={generating}
                   idx={i}
                 />

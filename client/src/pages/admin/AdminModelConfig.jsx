@@ -180,13 +180,13 @@ export default function AdminModelConfig() {
                 ))}
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:9, color:T.slateD }}>
-                <span style={{ color:"#00d4aa" }}>Healthy (0–{mildT}%)</span>
-                <span style={{ color:"#fbbf24" }}>Very Mild/Mild ({mildT}–{moderateT}%)</span>
-                <span style={{ color:"#fb923c" }}>Moderate ({moderateT}–100%)</span>
+                <span style={{ color:"#00d4aa" }}>Non-demented (0–{mildT}%)</span>
+                <span style={{ color:"#fbbf24" }}>Very Mild ({mildT}–{moderateT}%)</span>
+                <span style={{ color:"#fb923c" }}>Mild ({moderateT}–100%)</span>
               </div>
             </div>
-            <ThresholdRow label="Mild Stage Start" accentColor="#fbbf24" description="AD% above this is Very Mild / MCI" value={mildT} onChange={setMildT} />
-            <ThresholdRow label="Moderate Stage Start" accentColor="#fb923c" description="AD% above this is Moderate Alzheimer's" value={moderateT} onChange={setModT} />
+            <ThresholdRow label="Very Mild Start" accentColor="#fbbf24" description="AD% above this is Very Mild Demented" value={mildT} onChange={setMildT} />
+            <ThresholdRow label="Mild Start" accentColor="#fb923c" description="AD% above this is Mild Demented" value={moderateT} onChange={setModT} />
           </Card>
         </div>
 
@@ -212,10 +212,10 @@ export default function AdminModelConfig() {
             <CardTitle sub="How the current settings would classify a patient">Score Preview</CardTitle>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {[
-                { label:"Healthy",           ad:20, demo:15, cog:80, mri:10 },
-                { label:"Very Mild (MCI)",   ad:38, demo:35, cog:55, mri:35 },
-                { label:"Mild Alzheimer's",  ad:63, demo:55, cog:30, mri:65 },
-                { label:"Moderate",          ad:85, demo:70, cog:15, mri:90 },
+                { label:"Non-demented",      ad:20, demo:15, cog:80, mri:10 },
+                { label:"Very mild demented", ad:38, demo:35, cog:55, mri:35 },
+                { label:"Mild demented",      ad:63, demo:55, cog:30, mri:65 },
+                { label:"Moderate demented",  ad:85, demo:70, cog:15, mri:90 },
               ].map(({ label, demo, cog, mri }) => {
                 const ad = Math.round(w1*demo + w2*(100-cog) + w3*mri);
                 const statusColor = ad >= moderateT ? "#ff6b6b" : ad >= mildT ? "#fb923c" : ad >= 25 ? "#fbbf24" : "#00d4aa";

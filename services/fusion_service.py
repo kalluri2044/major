@@ -20,16 +20,16 @@ from services.demographic_service import compute_demographic_risk
 # ── Stage thresholds (default — overridable by admin) ─────────────────────────
 DEFAULT_THRESHOLDS = {
     "healthy":   (0,   25),
-    "very_mild": (25,  50),
-    "mild":      (50,  75),
-    "moderate":  (75,  100),
+    "very_mild": (25,  51),
+    "mild":      (51,  76),
+    "moderate":  (76,  100),
 }
 
 STAGE_DISPLAY = {
-    "healthy":   "Non-Demented / Healthy",
-    "very_mild": "Very Mild Demented (MCI)",
-    "mild":      "Mild Alzheimer's Disease",
-    "moderate":  "Moderate Alzheimer's Disease",
+    "healthy":   "Non-demented",
+    "very_mild": "Very mild demented",
+    "mild":      "Mild demented",
+    "moderate":  "Moderate demented",
 }
 
 STAGE_COLOR = {

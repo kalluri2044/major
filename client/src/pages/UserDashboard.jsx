@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { userAPI } from "../services/api";
 import { getStage } from "../components/DesignSystem";
+import { SideNav } from "../components/SideNav";
 
 function ScoreArc({ score, color, size = 180 }) {
   const [v, setV] = useState(0);
@@ -29,51 +30,6 @@ function ScoreArc({ score, color, size = 180 }) {
   );
 }
 
-function SideNav({ user, logout }) {
-  const navigate = useNavigate();
-  const startAssessment = async (path) => {
-    try { const { data } = await userAPI.startSession(); navigate(`${path}?session_id=${data.session?.id||""}`); }
-    catch { navigate(path); }
-  };
-  const links = [
-    { icon:"🏠", label:"Dashboard",   path:"/dashboard",      active:true,  session:false },
-    { icon:"📈", label:"Progression", path:"/progression",    active:false, session:false },
-    { icon:"📄", label:"Reports",     path:"/reports",        active:false, session:false },
-    { icon:"👤", label:"Demographics",path:"/demographics",   active:false, session:true  },
-    { icon:"🧠", label:"Cognitive",   path:"/cognitive-test", active:false, session:true  },
-    { icon:"🔬", label:"MRI Upload",  path:"/mri-upload",     active:false, session:true  },
-    { icon:"⚙️", label:"Settings",    path:"/settings",       active:false, session:false },
-  ];
-  return (
-    <div className="sidebar">
-      <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Instrument Serif',serif", fontSize:20, color:"var(--bg-main)", fontWeight:600, flexShrink:0 }}>N</div>
-          <div><div style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)" }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>Patient Portal</div></div>
-        </div>
-      </div>
-      <div style={{ flex:1, padding:"0 8px" }}>
-        {links.map(({ icon, label, path, active, session }) => (
-          <div key={label} className={`nav-link ${active ? "active" : ""}`}
-            onClick={() => session ? startAssessment(path) : navigate(path)}
-            style={{ cursor:"pointer" }}>
-            <div style={{ fontSize:16, width:24, textAlign:"center" }}>{icon}</div>
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding:"16px", borderTop:"1px solid var(--border-subtle)" }}>
-        <div style={{ padding:"12px", borderRadius:"var(--radius-md)", background:"var(--bg-panel)", marginBottom:12 }}>
-          <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.name}</div>
-          <div style={{ fontSize:12, color:"var(--text-secondary)", overflow:"hidden", textOverflow:"ellipsis" }}>{user?.email}</div>
-        </div>
-        <button onClick={logout} className="btn-secondary" style={{ width:"100%", color:"var(--accent-red)", borderColor:"transparent" }}>
-          <span>🚪</span> Sign out
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
@@ -122,7 +78,7 @@ export default function UserDashboard() {
     { label:"Total Sessions",  value: trend.length || 0, sub:"completed", color:"var(--accent-blue)", icon:"📋" },
     { label:"Latest AD Risk",  value: scoreLabel, sub:subLabel, color: sm?.c || "var(--text-secondary)", icon:"🎯" },
     { label:"Cognitive Score", value: cognitiveLabel, sub:"estimated",  color:"var(--accent-purple)", icon:"🧠" },
-    { label:"Progression",     value: prog ? `${prog.delta_ad_percentage>0?"+":""}${prog.delta_ad_percentage?.toFixed(1)}%` : "—", sub:prog?.progression_label||"No history", color: prog?.delta_ad_percentage>0 ? "var(--accent-red)" : prog?.delta_ad_percentage<0 ? "var(--accent-teal)" : "var(--accent-amber)", icon:"📈" },
+    { label:"Progression",     value: prog ? `${(prog?.delta_ad_percentage||0)>0?"+":""}${prog?.delta_ad_percentage?.toFixed(1) || 0}%` : "—", sub:prog?.progression_label||"No history", color: (prog?.delta_ad_percentage||0)>0 ? "var(--accent-red)" : (prog?.delta_ad_percentage||0)<0 ? "var(--accent-teal)" : "var(--accent-amber)", icon:"📈" },
   ];
 
   return (
@@ -197,9 +153,10 @@ export default function UserDashboard() {
                     const pct = (s.ad_percentage || 0) / 100 * 100;
                     const isLast = i === Math.min(trend.length, 10) - 1;
                     return (
-                      <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                      <div key={i} onClick={() => navigate(`/results/${s.session_id}`)}
+                        style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:6, cursor:"pointer" }}>
                         <div className="mono" style={{ fontSize:10, color:"var(--text-secondary)" }}>{Math.round(s.ad_percentage||0)}</div>
-                        <div style={{ width:"100%", height:Math.max(pct, 4), borderRadius:"6px 6px 0 0", background: isLast ? tsm.c : `${tsm.c}88`, transition:"height .5s ease" }} />
+                        <div style={{ width:"100%", height:Math.max(pct, 4), borderRadius:"6px 6px 0 0", background: isLast ? tsm.c : `${tsm.c}88`, transition:"all 0.2s" }} />
                         <div style={{ fontSize:10, color:"var(--text-tertiary)" }}>{new Date(s.date).toLocaleDateString("en",{month:"short",day:"numeric"})}</div>
                       </div>
                     );

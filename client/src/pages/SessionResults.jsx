@@ -121,8 +121,8 @@ export default function SessionResults() {
                 <div style={{display:"flex",flexDirection:"column",gap:16}}>
                   {[
                     {label:"Demographics",icon:"👤",val:demo?Math.round(.2*((demo.age>70?55:demo.age>60?35:20)+(demo.family_history?20:0))):0,color:"#60a5fa",w:"20%"},
-                    {label:"Cognitive",icon:"🧠",val:cog?Math.round(.35*(100-cog.normalized_score)):0,color:"var(--accent-purple)",w:"35%"},
-                    {label:"MRI Analysis",icon:"🔬",val:mri?Math.round(.45*(mri.mri_risk_score||0)):0,color:"var(--accent-teal)",w:"45%"},
+                    {label:"Cognitive",icon:"🧠",val:cog?Math.round(.35*(100-(cog?.normalized_score||0))):0,color:"var(--accent-purple)",w:"35%"},
+                    {label:"MRI Analysis",icon:"🔬",val:mri?Math.round(.45*(mri?.mri_risk_score||0)):0,color:"var(--accent-teal)",w:"45%"},
                   ].map(({label,icon,val,color,w})=>(
                     <div key={label}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -138,7 +138,7 @@ export default function SessionResults() {
               {/* Stats row */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
                 {[
-                  {label:"Cognitive Score",val:cog?`${cog.normalized_score.toFixed(1)}/100`:"—",color:"var(--accent-purple)",icon:"🧠"},
+                  {label:"Cognitive Score",val:cog?`${cog?.normalized_score?.toFixed(1)||0}/100`:"—",color:"var(--accent-purple)",icon:"🧠"},
                   {label:"MRI Stage",val:mri?.ensemble_stage||"—",color:"var(--accent-teal)",icon:"🔬"},
                   {label:"Progression",val:prog?.progression_label||"First Visit",color:prog?.progression_label==="Worsened"?"var(--accent-red)":prog?.progression_label==="Improved"?"var(--accent-teal)":"var(--accent-amber)",icon:"📈"},
                 ].map(({label,val,color,icon})=>(
@@ -157,12 +157,13 @@ export default function SessionResults() {
                   <div style={{display:"flex",alignItems:"flex-end",gap:8,height:90}}>
                     {(data.session_trend||[]).slice(-10).map((s,i)=>{
                       const tsm=getStage(s.stage);
-                      const isLast=i===(data.session_trend||[]).slice(-10).length-1;
+                      const isActive = s.session_id === parseInt(sessionId);
                       return(
-                        <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                          <div className="mono" style={{fontSize:10,color:"var(--text-secondary)"}}>{Math.round(s.ad_percentage||0)}</div>
-                          <div style={{width:"100%",height:`${Math.max((s.ad_percentage||0)/100*70,4)}px`,borderRadius:"4px 4px 0 0",background:isLast?tsm.color:tsm.bg,border:isLast?`1px solid ${tsm.color}`:"none",transition:"height .6s ease"}}/>
-                          <div style={{fontSize:10,color:"var(--text-tertiary)"}}>{new Date(s.date).toLocaleDateString("en",{month:"short",day:"numeric"})}</div>
+                        <div key={i} onClick={()=>navigate(`/results/${s.session_id}`)}
+                          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}}>
+                          <div className="mono" style={{fontSize:10,color:isActive?"var(--text-primary)":"var(--text-secondary)",fontWeight:isActive?600:400}}>{Math.round(s.ad_percentage||0)}</div>
+                          <div style={{width:"100%",height:`${Math.max((s.ad_percentage||0)/100*70,4)}px`,borderRadius:"4px 4px 0 0",background:isActive?tsm.color:tsm.bg,border:isActive?`1px solid ${tsm.color}`:"none",transition:"all 0.2s",boxShadow:isActive?`0 0 12px ${tsm.color}44`:"none"}}/>
+                          <div style={{fontSize:10,color:isActive?"var(--text-secondary)":"var(--text-tertiary)",fontWeight:isActive?500:400}}>{new Date(s.date).toLocaleDateString("en",{month:"short",day:"numeric"})}</div>
                         </div>
                       );
                     })}
@@ -196,15 +197,15 @@ export default function SessionResults() {
                 <Card className="animate-fade-up delay-100" style={{flex:1,minWidth:320}}>
                   <SH sub="25-question MMSE + MoCA assessment">Cognitive Assessment</SH>
                   <div style={{textAlign:"center",marginBottom:24,marginTop:16}}>
-                    <div className="serif" style={{fontSize:56,color:"var(--accent-purple)",lineHeight:1}}>{cog.normalized_score.toFixed(1)}</div>
+                    <div className="serif" style={{fontSize:56,color:"var(--accent-purple)",lineHeight:1}}>{cog?.normalized_score?.toFixed(1)||0}</div>
                     <div style={{fontSize:13,color:"var(--text-secondary)",marginTop:4}}>/100 normalized</div>
                   </div>
                   <div style={{height:8,background:"var(--bg-panel)",borderRadius:99,overflow:"hidden",marginBottom:12}}>
-                    <div style={{height:"100%",width:`${cog.normalized_score}%`,background:"var(--accent-purple)",borderRadius:99}}/>
+                    <div style={{height:"100%",width:`${cog?.normalized_score||0}%`,background:"var(--accent-purple)",borderRadius:99}}/>
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"var(--text-secondary)"}}>
-                    <span>Raw: {cog.raw_score}/50</span>
-                    <span style={{color:"var(--accent-purple)",fontWeight:600}}>{cog.normalized_score>=85?"Normal":cog.normalized_score>=70?"Mild Concern":cog.normalized_score>=50?"MCI":"Impaired"}</span>
+                    <span>Raw: {cog?.raw_score||0}/50</span>
+                    <span style={{color:"var(--accent-purple)",fontWeight:600}}>{cog?.normalized_score>=85?"Normal":cog?.normalized_score>=70?"Mild Concern":cog?.normalized_score>=50?"MCI":"Impaired"}</span>
                   </div>
                 </Card>
               )}
@@ -214,7 +215,7 @@ export default function SessionResults() {
               <Card className="animate-fade-up delay-200">
                 <SH sub="VGG16 + ResNet50 ensemble prediction">MRI Analysis</SH>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))",gap:16,marginTop:20}}>
-                  {[{label:"VGG16",val:mri.vgg16_prediction,conf:mri.vgg16_confidence,color:"var(--accent-blue)"},{label:"ResNet50",val:mri.resnet50_prediction,conf:mri.resnet50_confidence,color:"var(--accent-purple)"},{label:"Ensemble",val:mri.ensemble_stage,conf:mri.ensemble_confidence,color:"var(--accent-teal)"},{label:"MRI Risk",val:`${mri.mri_risk_score}/100`,conf:null,color:sm.color}].map(m=>(
+                  {[{label:"VGG16",val:mri?.vgg16_prediction,conf:mri?.vgg16_confidence,color:"var(--accent-blue)"},{label:"ResNet50",val:mri?.resnet50_prediction,conf:mri?.resnet50_confidence,color:"var(--accent-purple)"},{label:"Ensemble",val:mri?.ensemble_stage,conf:mri?.ensemble_confidence,color:"var(--accent-teal)"},{label:"MRI Risk",val:`${mri?.mri_risk_score||0}/100`,conf:null,color:sm.color}].map(m=>(
                     <div key={m.label} style={{padding:"20px",background:"var(--bg-panel)",border:`1px solid var(--border-subtle)`,borderRadius:"var(--radius-md)",textAlign:"center"}}>
                       <div style={{fontSize:11,fontWeight:600,color:"var(--text-tertiary)",textTransform:"uppercase",letterSpacing:".07em",marginBottom:12}}>{m.label}</div>
                       <div style={{fontSize:15,fontWeight:600,color:m.color,marginBottom:m.conf?6:0}}>{m.val}</div>
@@ -247,9 +248,9 @@ export default function SessionResults() {
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:12}}>
                       {(items||[]).slice(0,4).map((item,i)=>(
-                        <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<(items.length>4?3:items.length-1)?`1px solid var(--border-subtle)`:"none"}}>
+                        <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<((items||[]).length>4?3:(items||[]).length-1)?`1px solid var(--border-subtle)`:"none"}}>
                           <div style={{width:4,borderRadius:99,background:c,flexShrink:0,marginTop:6,height:4}}/>
-                          <div style={{fontSize:14,color:"var(--text-secondary)",lineHeight:1.6}}>{item.substring(0,180)}{item.length>180?"…":""}</div>
+                          <div style={{fontSize:14,color:"var(--text-secondary)",lineHeight:1.6}}>{item?.substring?(item.substring(0,180)):item}{item?.length>180?"…":""}</div>
                         </div>
                       ))}
                     </div>
@@ -283,7 +284,7 @@ export default function SessionResults() {
                 <Card className="animate-fade-up delay-200" style={{padding:"32px"}}>
                   <SH sub="vs previous session">Comparison</SH>
                   <div style={{display:"flex",flexDirection:"column",gap:16,marginTop:24}}>
-                    {[["AD Percentage",prog.prev_ad_percentage?.toFixed(1)+"%",adPct.toFixed(1)+"%",adPct>prog.prev_ad_percentage?"var(--accent-red)":"var(--accent-teal)"],["Cognitive Score",prog.prev_cognitive?.toFixed(1)||"—",cog?.normalized_score?.toFixed(1)||"—",cog?.normalized_score<prog.prev_cognitive?"var(--accent-red)":"var(--accent-teal)"],["MRI Stage",prog.prev_mri_stage||"—",mri?.ensemble_stage||"—","var(--text-primary)"]].map(([l,prev,curr,color])=>(
+                    {[["AD Percentage",prog?.prev_ad_percentage?.toFixed(1)+"%",adPct.toFixed(1)+"%",adPct>(prog?.prev_ad_percentage||0)?"var(--accent-red)":"var(--accent-teal)"],["Cognitive Score",prog?.prev_cognitive?.toFixed(1)||"—",cog?.normalized_score?.toFixed(1)||"—",(cog?.normalized_score||0)<(prog?.prev_cognitive||0)?"var(--accent-red)":"var(--accent-teal)"],["MRI Stage",prog?.prev_mri_stage||"—",mri?.ensemble_stage||"—","var(--text-primary)"]].map(([l,prev,curr,color])=>(
                       <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",border:`1px solid var(--border-subtle)`,background:"var(--bg-panel)",borderRadius:"var(--radius-sm)"}}>
                         <span style={{fontSize:14,color:"var(--text-secondary)",fontWeight:500}}>{l}</span>
                         <div style={{display:"flex",gap:20,alignItems:"center"}}>

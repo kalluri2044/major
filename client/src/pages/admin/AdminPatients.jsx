@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { AdminLayout, Card, CardTitle, Spinner, Toast, T, getStage, CSS_BASE } from "./AdminLayout";
 import { exportAPI } from "../../services/api";
 import api from "../../services/api";
@@ -85,14 +85,14 @@ function PatientDetail({ patient, onClose, onToggleActive, toast }) {
               <div style={{ fontSize:10, fontWeight:600, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:10 }}>Demographics</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                 {[
-                  ["Age",           detail.demographics.age],
-                  ["Gender",        detail.demographics.gender],
-                  ["Education",     detail.demographics.education_level],
-                  ["Family Hx",     detail.demographics.family_history ? "Yes ⚠️" : "No"],
-                  ["Hypertension",  detail.demographics.hypertension   ? "Yes ⚠️" : "No"],
-                  ["Diabetes",      detail.demographics.diabetes        ? "Yes ⚠️" : "No"],
-                  ["Smoking",       detail.demographics.smoking         ? "Yes ⚠️" : "No"],
-                  ["Sleep",         detail.demographics.sleep_quality],
+                  ["Age",           detail.demographics?.age],
+                  ["Gender",        detail.demographics?.gender],
+                  ["Education",     detail.demographics?.education_level],
+                  ["Family Hx",     detail.demographics?.family_history ? "Yes ⚠️" : "No"],
+                  ["Hypertension",  detail.demographics?.hypertension   ? "Yes ⚠️" : "No"],
+                  ["Diabetes",      detail.demographics?.diabetes        ? "Yes ⚠️" : "No"],
+                  ["Smoking",       detail.demographics?.smoking         ? "Yes ⚠️" : "No"],
+                  ["Sleep",         detail.demographics?.sleep_quality],
                 ].map(([l, v]) => (
                   <div key={l} style={{ padding:"8px 10px", borderRadius:8, background:"rgba(255,255,255,0.03)", border:`1px solid ${T.border}` }}>
                     <div style={{ fontSize:9, color:T.slateD, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:3 }}>{l}</div>
@@ -113,7 +113,7 @@ function PatientDetail({ patient, onClose, onToggleActive, toast }) {
                   const h   = Math.max((t.ad_percentage / 100) * 52, 4);
                   return (
                     <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-                      <div style={{ fontSize:7, color:T.slateD, fontFamily:"'DM Mono',monospace" }}>{Math.round(t.ad_percentage||0)}</div>
+                      <div style={{ fontSize:7, color:T.slateD, fontFamily:"'DM Mono',monospace" }}>{Math.round(t?.ad_percentage||0)}</div>
                       <div style={{ width:"100%", height:h, borderRadius:"2px 2px 0 0", background:i===detail.trend.length-1?tsm.color:`${tsm.color}66` }} />
                     </div>
                   );
@@ -161,6 +161,7 @@ function PatientDetail({ patient, onClose, onToggleActive, toast }) {
 
 export default function AdminPatients() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [patients,  setPatients]  = useState([]);
   const [selected,  setSelected]  = useState(null);
   const [loading,   setLoading]   = useState(true);
@@ -200,6 +201,16 @@ export default function AdminPatients() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Handle URL ID selection
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const id = q.get("id");
+    if (id && patients.length > 0) {
+      const p = patients.find(u => String(u.id) === String(id));
+      if (p) setSelected(p);
+    }
+  }, [location.search, patients]);
 
   const handleToggleActive = async (id, active) => {
     try {

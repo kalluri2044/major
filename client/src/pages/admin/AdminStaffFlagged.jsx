@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { AdminLayout, Card, CardTitle, Spinner, Toast, T, getStage, CSS_BASE } from "./AdminLayout";
 import api from "../../services/api";
 
@@ -158,6 +159,7 @@ export function AdminStaff() {
    HIGH RISK / FLAGGED PATIENTS
    ═══════════════════════════════════════════ */
 export function AdminFlagged() {
+  const navigate    = useNavigate();
   const [flagged,   setFlagged]   = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [threshold, setThreshold] = useState(75);
@@ -245,9 +247,9 @@ export function AdminFlagged() {
                   </span>
                 </div>
 
-                <a href={`/admin/patients?id=${item.user.id}`} style={{ display:"block", padding:"9px", textAlign:"center", background:"rgba(255,107,107,0.12)", border:"1px solid rgba(255,107,107,0.28)", borderRadius:9, color:T.red, fontSize:12, fontWeight:600, textDecoration:"none" }}>
+                <Link to={`/admin/patients?id=${item.user.id}`} style={{ display:"block", padding:"9px", textAlign:"center", background:"rgba(255,107,107,0.12)", border:"1px solid rgba(255,107,107,0.28)", borderRadius:9, color:T.red, fontSize:12, fontWeight:600, textDecoration:"none" }}>
                   View Patient Record →
-                </a>
+                </Link>
               </div>
             );
           })}

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import AssessmentSidebar from "../components/AssessmentSidebar";
 
 export default function MRIUpload() {
   const navigate = useNavigate();
@@ -84,7 +85,7 @@ export default function MRIUpload() {
   if (sessionLoading) {
     return (
       <div className="page-container">
-        <div className="sidebar" />
+        <AssessmentSidebar activeStep="mri" sessionId={sessionId} />
         <div className="main-content" style={{ alignItems:"center", justifyContent:"center" }}>
           <div className="spinner" style={{ marginBottom:16 }} />
           <div style={{ color:"var(--text-secondary)" }}>Initializing session…</div>
@@ -96,7 +97,7 @@ export default function MRIUpload() {
   if (sessionError) {
     return (
       <div className="page-container">
-        <div className="sidebar" />
+        <AssessmentSidebar activeStep="mri" sessionId={sessionId} />
         <div className="main-content" style={{ alignItems:"center", justifyContent:"center", padding:40 }}>
           <div style={{ fontSize:64, marginBottom:16 }}>⚠️</div>
           <h2 className="serif" style={{ fontSize:36, marginBottom:16 }}>Session Required</h2>
@@ -114,20 +115,7 @@ export default function MRIUpload() {
 
   return (
     <div className="page-container">
-      {/* Sidebar Navigation */}
-      <div className="sidebar">
-        <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", color:"var(--bg-main)", fontFamily:"'Instrument Serif',serif", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>N</div>
-            <div><div style={{ fontSize:16, fontWeight:600 }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>AI Assessment</div></div>
-          </div>
-        </div>
-        {[["👤","Demographics","/demographics",""],["🧠","Cognitive Test","/cognitive-test",""],["🔬","MRI Upload","/mri-upload","mri"],["📊","Results","/dashboard",""]].map(([ic,lb,hr,id],i)=>(
-          <a key={lb} href={hr} className={`nav-link ${id === "mri" ? "active" : ""}`}>
-            <span style={{ fontSize:16 }}>{i < 2 ? "✓" : ic}</span><span>{lb}</span>
-          </a>
-        ))}
-      </div>
+      <AssessmentSidebar activeStep="mri" sessionId={sessionId} />
 
       <div className="main-content">
         <div style={{ padding:"48px", maxWidth:1100, margin:"0 auto", width:"100%" }}>

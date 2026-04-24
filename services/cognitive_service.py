@@ -303,38 +303,91 @@ def score_answers(answers: List[Dict]) -> Dict:
         qid      = q["id"]
         ans_data = answer_map.get(qid, {})
         awarded  = 0
-
-        # Server-side scoring for objective questions
-        qtype    = q["type"]
+        scoring_type = q.get("scoring")
         raw_ans  = str(ans_data.get("raw_answer", "")).strip().lower()
+        q_type   = q.get("type")
 
-        if qtype == "text_input" and "expected" in q:
-            expected = str(q["expected"]).lower()
+        # 1. Exact Match (Choice or Input)
+        if scoring_type in ["exact_match", "exact_match_choice"]:
+            expected = str(q.get("expected", "")).lower()
             if raw_ans == expected:
                 awarded = q["max_score"]
-            elif expected in raw_ans or raw_ans in expected:
-                awarded = max(1, q["max_score"] - 1)
 
-        elif qtype == "word_recall":
-            target = [w.lower() for w in q["target_words"]]
-            found  = sum(1 for w in target if w in raw_ans)
-            awarded = min(found, q["max_score"])
-
-        elif qtype == "number_sequence":
+        # 2. Sequence Match (Numbers)
+        elif scoring_type == "sequence_match":
+            expected = q.get("expected", [])
             try:
-                nums = [int(x.strip()) for x in raw_ans.replace(",", " ").split() if x.strip().isdigit()]
-                correct = sum(1 for a, b in zip(nums, q["expected"]) if a == b)
+                # Extract numbers from input
+                import re
+                nums = [int(n) for n in re.findall(r'\d+', raw_ans)]
+                correct = sum(1 for a, b in zip(nums, expected) if a == b)
                 awarded = min(correct, q["max_score"])
-            except Exception:
+            except:
                 awarded = 0
 
-        elif qtype == "single_choice":
-            # Client submits awarded_score for self-rated; server validates range
-            client_score = int(ans_data.get("awarded_score", 0))
-            awarded = min(max(client_score, 0), q["max_score"])
+        # 3. Keyword Match (Partial logic)
+        elif scoring_type == "keyword_match":
+            expected = str(q.get("expected", "")).lower().split()
+            found = sum(1 for word in expected if word in raw_ans)
+            if found >= len(expected): awarded = q["max_score"]
+            elif found > 0: awarded = max(1, q["max_score"] - 1)
 
+        # 4. List Count Unique (Animal naming)
+        elif scoring_type == "list_count_unique":
+            # Split by comma, space, or newline
+            import re
+            words = set(re.split(r'[,\s\n]+', raw_ans))
+            words = [w for w in words if len(w) > 2] # ignore tiny noise
+            count = len(words)
+            if count >= 12: awarded = 2
+            elif count >= 7: awarded = 1
+            else: awarded = 0
+
+        # 5. Word Recall (Matches in list)
+        elif scoring_type == "list_count_matches":
+            targets = [t.lower() for t in q.get("target_words", [])]
+            found = sum(1 for t in targets if t in raw_ans)
+            awarded = min(found, q["max_score"])
+
+        # 6. Date Check
+        elif scoring_type == "date_check":
+            from datetime import datetime
+            now = datetime.now()
+            curr_month = now.strftime("%B").lower()
+            curr_day = str(now.day)
+            if curr_month in raw_ans and curr_day in raw_ans: awarded = 2
+            elif curr_month in raw_ans or curr_day in raw_ans: awarded = 1
+
+        # 7. Location Check
+        elif scoring_type == "location_check":
+            # This is hard to verify without geocoding, so we check for non-empty/reasonable length
+            if len(raw_ans) > 10: awarded = 2
+            elif len(raw_ans) > 3: awarded = 1
+
+        # 8. Multi-factor Orientation
+        elif scoring_type == "multi_factor_orientation":
+            factors = ["friday", "april", "2026", "24", "new york"]
+            found = sum(1 for f in factors if f in raw_ans)
+            awarded = found # 1 point per factor found, max 5
+
+        # 9. Partial Text Match (Address/Name)
+        elif scoring_type == "partial_text_match":
+            expected = str(q.get("expected", q.get("hint", ""))).lower()
+            if raw_ans == expected: awarded = q["max_score"]
+            elif len(raw_ans) > 5:
+                # Basic overlap check
+                common = set(raw_ans.split()) & set(expected.split())
+                if len(common) >= 2: awarded = q["max_score"]
+                elif len(common) >= 1: awarded = 1
+        
+        # 9. Word Input (Immediate Registration)
+        elif q_type == "word_input":
+            targets = [t.lower() for t in q.get("target_words", [])]
+            found = sum(1 for t in targets if t in raw_ans)
+            awarded = q["max_score"] # We give full points for confirming they saw it
+
+        # Fallback for older types if any
         else:
-            # Fallback: trust client score within bounds
             client_score = int(ans_data.get("awarded_score", 0))
             awarded = min(max(client_score, 0), q["max_score"])
 

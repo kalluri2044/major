@@ -4,48 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { getStage } from "../components/DesignSystem";
 
-function SideNav() {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-  const startAssessment = async (path) => {
-    try { const { data } = await api.post("/user/sessions"); navigate(`${path}?session_id=${data.session?.id||""}`); }
-    catch { navigate(path); }
-  };
-  const links = [
-    { icon:"🏠", label:"Dashboard",   path:"/dashboard",      active:false, session:false },
-    { icon:"📈", label:"Progression", path:"/progression",    active:false, session:false },
-    { icon:"📄", label:"Reports",     path:"/reports",        active:true,  session:false },
-    { icon:"👤", label:"Demographics",path:"/demographics",   active:false, session:true  },
-    { icon:"🧠", label:"Cognitive",   path:"/cognitive-test", active:false, session:true  },
-    { icon:"🔬", label:"MRI Upload",  path:"/mri-upload",     active:false, session:true  },
-    { icon:"⚙️", label:"Settings",    path:"/settings",       active:false, session:false },
-  ];
-  return (
-    <div className="sidebar">
-      <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Instrument Serif',serif", fontSize:20, color:"var(--bg-main)", fontWeight:600, flexShrink:0 }}>N</div>
-          <div><div style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)" }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>Patient Portal</div></div>
-        </div>
-      </div>
-      <div style={{ flex:1, padding:"0 8px" }}>
-        {links.map(({ icon, label, path, active, session }) => (
-          <div key={label} className={`nav-link ${active ? "active" : ""}`}
-            onClick={() => session ? startAssessment(path) : navigate(path)}
-            style={{ cursor:"pointer" }}>
-            <div style={{ fontSize:16, width:24, textAlign:"center" }}>{icon}</div>
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding:"16px", borderTop:"1px solid var(--border-subtle)" }}>
-        <button onClick={logout} className="btn-secondary" style={{ width:"100%", color:"var(--accent-red)", borderColor:"transparent" }}>
-          <span>🚪</span> Sign out
-        </button>
-      </div>
-    </div>
-  );
-}
+import { SideNav } from "../components/SideNav";
 
 function ReportCard({ session, report, onGenerate, onDownload, generating, idx }) {
   const isCompleted = session && session.stage_label !== null && session.final_ad_percentage !== null;
@@ -116,6 +75,7 @@ function ReportCard({ session, report, onGenerate, onDownload, generating, idx }
 }
 
 export default function Reports() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sessions,   setSessions]   = useState([]);
   const [reports,    setReports]    = useState([]);
@@ -165,7 +125,7 @@ export default function Reports() {
 
   if (loading) return (
     <div className="page-container">
-      <SideNav />
+      <SideNav user={user} logout={logout} />
       <div className="main-content" style={{ alignItems:"center", justifyContent:"center" }}>
         <div className="spinner" style={{ marginBottom:16 }} />
         <div style={{ color:"var(--text-secondary)" }}>Loading reports…</div>
@@ -179,7 +139,7 @@ export default function Reports() {
 
   return (
     <div className="page-container">
-      <SideNav />
+      <SideNav user={user} logout={logout} />
 
       {/* Toast Notification */}
       {toast && (

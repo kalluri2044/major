@@ -15,7 +15,7 @@ def create_app():
     # ── Flask factory ──────────────────────────────────────────────────────────
     app = Flask(
         __name__,
-        static_folder   = BUILD_DIR,   # serve React's build/ as static root
+        static_folder   = BUILD_DIR,
         static_url_path = ""
     )
     app.config.from_object(Config)
@@ -59,27 +59,15 @@ def create_app():
         """
         Serve React's production build.
         - API routes are handled by blueprints above (never reach here).
-        - Static assets (JS/CSS/images) are served from build/static.
-        - All other paths fall through to index.html (SPA client-side routing).
+        - Static assets are matched against client/build.
+        - All other paths (SPA routes) fall through to index.html.
         """
-        full_path = os.path.join(BUILD_DIR, path)
-        if path and os.path.exists(full_path) and os.path.isfile(full_path):
+        # If path exists as a file in BUILD_DIR, send it
+        if path and os.path.exists(os.path.join(BUILD_DIR, path)):
             return send_from_directory(BUILD_DIR, path)
-        # SPA fallback → always return index.html
-        index = os.path.join(BUILD_DIR, "index.html")
-        if os.path.exists(index):
-            return send_from_directory(BUILD_DIR, "index.html")
-        # Build not available yet — show helpful message
-        return (
-            "<h2 style='font-family:sans-serif;padding:40px;color:#0a1628'>"
-            "NeuroScan AI -- API Server Running [OK]<br/><br/>"
-            "<small style='color:#666'>React build not found.<br/>"
-            "Run <code>cd client && npm install && npm run build</code> "
-            "then restart this server, or run "
-            "<code>npm start</code> separately on port 3000 during development.</small>"
-            "</h2>",
-            200
-        )
+        
+        # Otherwise, serve index.html (SPA fallback)
+        return send_from_directory(BUILD_DIR, "index.html")
 
     # ── Create DB tables ──────────────────────────────────────────────────────
     with app.app_context():

@@ -1,21 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import AssessmentSidebar from "../components/AssessmentSidebar";
+import { C } from "../components/DesignSystem";
+import { AnimalNamingInput, WordInput } from "../components/CognitiveInputs";
 
 const DOMAIN_META = {
-  "Orientation":           {color:"var(--accent-blue)",bg:"rgba(59, 130, 246, 0.12)",  emoji:"🌍"},
-  "Memory Registration":   {color:"var(--accent-purple)",bg:"rgba(139, 92, 246, 0.12)", emoji:"📝"},
-  "Attention":             {color:"var(--accent-amber)",bg:"rgba(245, 158, 11, 0.12)",  emoji:"🎯"},
-  "Language":              {color:"var(--accent-teal)",bg:"var(--accent-teal-dim)",  emoji:"💬"},
-  "Visuospatial":          {color:"#f472b6",bg:"rgba(244, 114, 182, 0.12)", emoji:"🔷"},
-  "Executive Function":    {color:"#fb923c",bg:"rgba(251, 146, 60, 0.12)",  emoji:"♟️"},
-  "Delayed Memory Recall": {color:"#22d3ee",bg:"rgba(34, 211, 238, 0.12)",  emoji:"🔁"},
+  "Orientation":           {color: C.blue,   bg: "rgba(96, 165, 250, 0.1)", emoji:"🌍"},
+  "Memory Registration":   {color: C.violet, bg: "rgba(167, 139, 250, 0.1)", emoji:"📝"},
+  "Attention":             {color: C.amber,  bg: "rgba(252, 165, 73, 0.1)", emoji:"🎯"},
+  "Language":              {color: C.teal,   bg: "rgba(0, 212, 170, 0.1)", emoji:"💬"},
+  "Visuospatial":          {color: C.coral,  bg: "rgba(255, 77, 109, 0.1)", emoji:"🔷"},
+  "Executive Function":    {color: C.gold,   bg: "rgba(245, 185, 66, 0.1)", emoji:"♟️"},
+  "Delayed Memory Recall": {color: "#22d3ee", bg: "rgba(34, 211, 238, 0.1)", emoji:"🔁"},
 };
 
 export default function CognitiveTest() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const sessionId = params.get("session_id");
+  const [sessionId, setSessionId] = useState(params.get("session_id") || null);
   const [questions, setQuestions] = useState([]);
   const [current, setCurrent]     = useState(0);
   const [answers, setAnswers]     = useState({});
@@ -23,33 +26,70 @@ export default function CognitiveTest() {
   const [result, setResult]       = useState(null);
   const [loading, setLoading]     = useState(true);
   const [elapsed, setElapsed]     = useState(0);
-  const [timeLeft, setTimeLeft]   = useState(null);
-  const timerRef = useRef(null);
 
   useEffect(() => {
-    api.get("/cognitive/questions").then(({data}) => { setQuestions(data.questions); setLoading(false); });
+    if (sessionId) return;
+    api.post("/user/sessions")
+      .then(({ data }) => {
+        const sid = data.session?.id;
+        if (sid) {
+          setSessionId(String(sid));
+          window.history.replaceState(null, "", `/cognitive-test?session_id=${sid}`);
+        }
+      })
+      .catch(() => {});
+  }, [sessionId]);
+
+  useEffect(() => {
+    api.get("/cognitive/questions").then(({data}) => { 
+      setQuestions(data.questions); 
+      setLoading(false); 
+    });
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => { clearInterval(t); clearInterval(timerRef.current); };
+    return () => clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    clearInterval(timerRef.current);
-    const q = questions[current];
-    if(q?.id === 12) {
-      setTimeLeft(60);
-      timerRef.current = setInterval(() => setTimeLeft(t => { if(t <= 1) { clearInterval(timerRef.current); return 0; } return t - 1; }), 1000);
-    } else setTimeLeft(null);
-  }, [current, questions]);
 
   const q = questions[current];
   const ans = answers[q?.id] || { raw_answer: "", awarded_score: 0 };
-  const setAns = (raw, score=null) => setAnswers(p => ({...p, [q.id]: { question_id: q.id, raw_answer: raw, awarded_score: score !== null ? score : p[q?.id]?.awarded_score || 0 }}));
-  const setScore = (s) => setAnswers(p => ({...p, [q.id]: { ...p[q.id] || { question_id: q.id, raw_answer: "" }, awarded_score: s }}));
-  const answered = Object.keys(answers).length;
+  
+  const setAns = (raw) => {
+    setAnswers(p => ({
+      ...p, 
+      [q.id]: { 
+        ...p[q.id],
+        question_id: q.id, 
+        raw_answer: raw, 
+      }
+    }));
+  };
+
+  const setScore = (s) => {
+    setAnswers(p => ({
+      ...p, 
+      [q.id]: { 
+        ...p[q.id] || { question_id: q.id, raw_answer: "" }, 
+        awarded_score: s 
+      }
+    }));
+  };
+
+  const next = () => {
+    if (current < questions.length - 1) {
+      setCurrent(c => c + 1);
+      window.scrollTo(0, 0);
+    } else {
+      submit();
+    }
+  };
 
   const submit = async () => {
     setSubmitting(true);
-    const list = questions.map(qu => ({ question_id: qu.id, raw_answer: answers[qu.id]?.raw_answer || "", awarded_score: answers[qu.id]?.awarded_score || 0 }));
+    const list = questions.map(qu => ({ 
+      question_id: qu.id, 
+      raw_answer: answers[qu.id]?.raw_answer || "", 
+      awarded_score: answers[qu.id]?.awarded_score || 0 
+    }));
+    
     try {
       let sid = sessionId;
       if (!sid) {
@@ -64,38 +104,26 @@ export default function CognitiveTest() {
     }
   };
 
-  const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  if(loading) return (
+    <div style={{ display:"flex", flexDirection: "column", alignItems:"center", justifyContent:"center", height:"100vh", background:C.bg, color:C.textDim }}>
+      <div className="spin" style={{ width: 40, height: 40, border: `2px solid ${C.tealDim}`, borderTopColor: C.teal, borderRadius: '50%', marginBottom: 20 }} />
+      Initializing Cognitive Assessment Engine...
+    </div>
+  );
 
-  if(loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"var(--bg-main)", color:"var(--text-secondary)" }}><div className="spinner" style={{ marginRight:12 }}/> Loading assessment…</div>;
-
-  // ── Results Screen (Hidden Output) ─────────────────────────────────────────
   if(result) {
     return(
-      <div className="page-container">
-        {/* Sidebar Navigation */}
-        <div className="sidebar">
-          <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", color:"var(--bg-main)", fontFamily:"'Instrument Serif',serif", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>N</div>
-              <div><div style={{ fontSize:16, fontWeight:600 }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>AI Assessment</div></div>
-            </div>
-          </div>
-          {[["👤","Demographics","/demographics",""],["🧠","Cognitive Test","/cognitive-test","cognitive"],["🔬","MRI Upload","/mri-upload",""],["📊","Results","/dashboard",""]].map(([ic,lb,hr,id],i)=>(
-            <a key={lb} href={hr} className={`nav-link ${id === "cognitive" ? "active" : ""}`}>
-              <span style={{ fontSize:16 }}>{i===0 ? "✓" : ic}</span><span>{lb}</span>
-            </a>
-          ))}
-        </div>
-
-        <div className="main-content" style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <div className="glass-panel animate-fade-up" style={{ padding: "48px", maxWidth: 500, width: "100%", textAlign: "center" }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-            <h2 style={{ fontSize: 28, marginBottom: 16 }}>Cognitive Profile Saved</h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>
-              Your cognitive assessment responses have been securely recorded. The ensemble AI models will process this along with your MRI data in the next step.
+      <div className="page-container" style={{ display: 'flex', minHeight: '100vh', background: C.bg }}>
+        <AssessmentSidebar activeStep="cognitive" sessionId={sessionId} />
+        <div style={{ flex: 1, display:"flex", alignItems:"center", justifyContent:"center", padding: 40 }}>
+          <div className="glass-hi au" style={{ padding: "64px 48px", maxWidth: 540, width: "100%", textAlign: "center", borderRadius: 32 }}>
+            <div style={{ fontSize: 72, marginBottom: 24, animation: 'scaleIn 0.6s cubic-bezier(0.23, 1, 0.32, 1)' }}>✅</div>
+            <h2 className="section-title" style={{ fontSize: 32, marginBottom: 16 }}>Assessment Recorded</h2>
+            <p style={{ color: C.textDim, fontSize: 16, marginBottom: 40, lineHeight: 1.6 }}>
+              Neural signatures and cognitive patterns have been encoded. Your calculated score has been saved to your clinical record.
             </p>
-            <button className="btn-primary" style={{ width: "100%" }} onClick={() => navigate(sessionId ? `/mri-upload?session_id=${sessionId}` : "/mri-upload")}>
-              Continue to MRI Upload →
+            <button className="btn-primary" style={{ width: "100%", height: 56, fontSize: 16 }} onClick={() => navigate(sessionId ? `/mri-upload?session_id=${sessionId}` : "/mri-upload")}>
+              Proceed to MRI Analysis →
             </button>
           </div>
         </div>
@@ -103,182 +131,196 @@ export default function CognitiveTest() {
     );
   }
 
-  // ── Question Screen ─────────────────────────────────────────────────────────
-  const dm = q ? (DOMAIN_META[q.domain] || { color:"var(--accent-teal)", bg:"var(--accent-teal-dim)", emoji:"📋" }) : {};
-  const domains = [...new Set(questions.map(q => q.domain))];
+  const dm = q ? (DOMAIN_META[q.domain] || { color: C.teal, bg: "rgba(0, 212, 170, 0.1)", emoji:"📋" }) : {};
+  const answeredCount = Object.keys(answers).length;
+  const progress = (answeredCount / questions.length) * 100;
 
   return(
-    <div className="page-container">
-      {/* Sidebar Navigation */}
-      <div className="sidebar">
-        <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", color:"var(--bg-main)", fontFamily:"'Instrument Serif',serif", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>N</div>
-            <div><div style={{ fontSize:16, fontWeight:600 }}>NeuroScan</div><div style={{ fontSize:11, color:"var(--accent-teal)" }}>AI Assessment</div></div>
-          </div>
-        </div>
-        {[["👤","Demographics","/demographics",""],["🧠","Cognitive Test","/cognitive-test","cognitive"],["🔬","MRI Upload","/mri-upload",""],["📊","Results","/dashboard",""]].map(([ic,lb,hr,id],i)=>(
-          <a key={lb} href={hr} className={`nav-link ${id === "cognitive" ? "active" : ""}`}>
-            <span style={{ fontSize:16 }}>{i===0 ? "✓" : ic}</span><span>{lb}</span>
-          </a>
-        ))}
-      </div>
+    <div className="page-container" style={{ display: 'flex', minHeight: '100vh', background: C.bg }}>
+      <AssessmentSidebar activeStep="cognitive" sessionId={sessionId} />
 
-      <div className="main-content">
-        {/* Top bar */}
-        <div style={{ padding:"40px 48px 0", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div className="animate-fade-up">
-            <div className="badge badge-teal" style={{ marginBottom:12 }}>Cognitive Assessment</div>
-            <h1 style={{ fontSize:36 }}>
-              Question <span style={{ color:"var(--accent-teal)" }}>{current+1}</span> <span style={{ color:"var(--text-tertiary)", fontSize:20 }}>of {questions.length}</span>
-            </h1>
-          </div>
-          
-          <div className="animate-fade-up delay-100" style={{ display:"flex", alignItems:"center", gap:16 }}>
-            {timeLeft !== null && (
-              <div className="glass-panel" style={{ padding:"10px 20px", display:"flex", alignItems:"center", gap:10, background: timeLeft < 15 ? "rgba(239, 68, 68, 0.1)" : "rgba(245, 158, 11, 0.1)", borderColor: timeLeft < 15 ? "rgba(239, 68, 68, 0.3)" : "rgba(245, 158, 11, 0.3)" }}>
-                <span style={{ fontSize:18, animation: timeLeft < 15 ? "pulse-glow 1s infinite" : "none" }}>⏰</span>
-                <span className="mono" style={{ fontSize:16, fontWeight:600, color: timeLeft < 15 ? "var(--accent-red)" : "var(--accent-amber)" }}>{timeLeft}s</span>
-              </div>
-            )}
-            <div className="glass-panel" style={{ padding:"10px 20px", display:"flex", alignItems:"center", gap:10 }}>
-              <span style={{ fontSize:18, color:"var(--text-secondary)" }}>⏱</span>
-              <span className="mono" style={{ fontSize:16, color:"var(--text-primary)", fontWeight:500 }}>{fmt(elapsed)}</span>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        
+        {/* Header Section */}
+        <div style={{ padding: "40px 60px 20px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+          <div>
+            <div className="badge-teal ai" style={{ marginBottom: 12 }}>Module 02: Clinical Cognitive Evaluation</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+               <h1 className="section-title au" style={{ fontSize: 44 }}>
+                Question <span style={{ color: C.teal }}>{current + 1}</span>
+              </h1>
+              <span style={{ color: C.textFaint, fontSize: 20, fontWeight: 300 }}>/ {questions.length}</span>
             </div>
           </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="animate-fade-up" style={{ margin:"24px 48px 0", height:6, background:"var(--bg-panel)", borderRadius:99, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${(answered/questions.length)*100}%`, background:`linear-gradient(90deg, var(--accent-teal), var(--accent-blue))`, borderRadius:99, transition:"width 0.4s ease" }}/>
-        </div>
-
-        <div style={{ flex:1, display:"flex", gap:32, padding:"32px 48px 48px" }}>
           
-          {/* Question card */}
-          <div style={{ flex:1 }} className="animate-fade-up delay-200">
+          <div className="glass-hi ai" style={{ padding: "12px 24px", borderRadius: 12, display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 14, color: C.textDim, fontWeight: 600 }}>ELAPSED</span>
+            <span className="mono" style={{ fontSize: 18, color: C.text, fontWeight: 700 }}>
+              {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+            </span>
+          </div>
+        </div>
+
+        {/* Unified Progress Track */}
+        <div style={{ padding: "0 60px 40px" }}>
+          <div className="progress-track" style={{ height: 4, background: 'rgba(255,255,255,0.03)' }}>
+            <div className="progress-bar" style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${C.teal}, ${C.blue})`, boxShadow: `0 0 10px ${C.tealGlow}` }} />
+          </div>
+        </div>
+
+        <div style={{ padding: "0 60px 60px", flex: 1, display: 'flex', gap: 40 }}>
+          
+          {/* Main Question Area */}
+          <div style={{ flex: 1 }}>
             {q && (
-              <div className="glass-panel" style={{ padding:"40px" }}>
-                {/* Domain badge */}
-                <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"8px 16px", borderRadius:99, background:dm.bg, border:`1px solid ${dm.color}`, marginBottom:24, opacity: 0.8 }}>
-                  <span style={{ fontSize:16 }}>{dm.emoji}</span>
-                  <span style={{ fontSize:13, fontWeight:600, color:dm.color }}>{q.domain}</span>
-                  <span style={{ fontSize:11, color:"var(--text-tertiary)", marginLeft:6 }}>| Max {q.max_score} pts</span>
+              <div key={q.id} className="glass-hi au" style={{ padding: 48, borderRadius: 24, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: dm.color }} />
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+                  <span style={{ fontSize: 24 }}>{dm.emoji}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: dm.color, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{q.domain}</span>
+                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: C.textFaint }} />
+                  <span style={{ fontSize: 12, color: C.textDim }}>MAX SCORE: {q.max_score} PTS</span>
                 </div>
 
-                <h2 style={{ fontSize:22, fontWeight:500, color:"var(--text-primary)", lineHeight:1.5, marginBottom:12 }}>{q.question}</h2>
-                <p style={{ fontSize:14, color:"var(--text-secondary)", marginBottom:32, lineHeight:1.6 }}>{q.instructions}</p>
+                <h2 style={{ fontSize: 28, fontWeight: 400, color: C.white, lineHeight: 1.4, marginBottom: 16 }}>{q.question}</h2>
+                <p style={{ fontSize: 16, color: C.textDim, marginBottom: 40, lineHeight: 1.6 }}>{q.instructions}</p>
 
-                {/* Text input */}
-                {["text_input","number_sequence","word_recall"].includes(q.type) && (
-                  <textarea value={ans.raw_answer} onChange={e => setAns(e.target.value)}
-                    placeholder={q.hint} rows={3}
-                    className="input-field" style={{ resize:"none", marginBottom:24 }}/>
-                )}
-
-                {/* Choice */}
-                {q.type === "single_choice" && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:24 }}>
-                    {q.options.map((opt, i) => {
-                      const sel = ans.raw_answer === opt;
-                      const score = q.options.length === 3 ? (i === 0 ? q.max_score : i === 1 ? Math.ceil(q.max_score / 2) : 0) : (i === 0 ? q.max_score : 0);
-                      return(
-                        <div key={i} onClick={() => setAnswers(p => ({...p, [q.id]: { question_id:q.id, raw_answer:opt, awarded_score:score }}))}
-                          className="glass-panel"
-                          style={{ display:"flex", alignItems:"center", gap:16, padding:"16px 20px", cursor:"pointer", transition:"all 0.2s", background: sel ? dm.bg : "var(--bg-panel)", borderColor: sel ? dm.color : "var(--border-subtle)" }}>
-                          <div style={{ width:20, height:20, borderRadius:"50%", border:`2px solid ${sel ? dm.color : "var(--border-subtle)"}`, background: sel ? dm.color : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                            {sel && <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--bg-main)" }}/>}
+                {/* Input Mapping */}
+                <div style={{ minHeight: 180, marginBottom: 40 }}>
+                  {q.type === "single_choice" ? (
+                    <div style={{ display: "grid", gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                      {q.options.map((opt, i) => {
+                        const sel = ans.raw_answer === opt;
+                        return (
+                          <div 
+                            key={i} 
+                            onClick={() => setAns(opt)}
+                            className="si"
+                            style={{ 
+                              padding: "24px 32px", borderRadius: 20, cursor: "pointer", transition: "all 0.2s",
+                              background: sel ? dm.bg : 'rgba(255,255,255,0.02)',
+                              border: `2px solid ${sel ? dm.color : 'rgba(255,255,255,0.05)'}`,
+                              animationDelay: `${i * 0.05}s`,
+                              display: 'flex', alignItems: 'center', gap: 16
+                            }}
+                          >
+                             <div style={{ 
+                               width: 22, height: 22, borderRadius: '50%', border: `2px solid ${sel ? dm.color : 'rgba(255,255,255,0.2)'}`,
+                               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                             }}>
+                               {sel && <div style={{ width: 10, height: 10, borderRadius: '50%', background: dm.color }} />}
+                             </div>
+                             <span style={{ fontSize: 16, color: sel ? C.white : C.text, fontWeight: sel ? 700 : 400 }}>{opt}</span>
                           </div>
-                          <span style={{ fontSize:15, color: sel ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: sel ? 500 : 400 }}>{opt}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Self-rate */}
-                {["text_input","word_recall","number_sequence"].includes(q.type) && (
-                  <div className="glass-panel" style={{ display:"flex", alignItems:"center", gap:16, padding:"16px 24px", marginBottom:24 }}>
-                    <span style={{ fontSize:14, color:"var(--text-secondary)", flexShrink:0 }}>Self-rate your answer:</span>
-                    <div style={{ display:"flex", gap:8 }}>
-                      {Array.from({length: q.max_score + 1}, (_,i) => i).map(s => (
-                        <button key={s} onClick={() => setScore(s)} 
-                          style={{ width:36, height:36, borderRadius:8, border:`1px solid ${ans.awarded_score === s ? dm.color : "var(--border-subtle)"}`, background: ans.awarded_score === s ? dm.bg : "transparent", color: ans.awarded_score === s ? dm.color : "var(--text-secondary)", fontSize:14, fontWeight:600, cursor:"pointer", transition:"all 0.15s" }}>
-                          {s}
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
-
-                <div style={{ padding:"14px 20px", background:"rgba(255,255,255,0.02)", borderRadius:"var(--radius-md)", marginBottom:32, borderLeft:`3px solid ${dm.color}` }}>
-                  <span style={{ fontSize:13, color:"var(--text-secondary)", lineHeight:1.6 }}>💡 {q.hint}</span>
+                  ) : (
+                    <>
+                      <textarea 
+                        value={ans.raw_answer} 
+                        onChange={e => setAns(e.target.value)}
+                        placeholder="Type response here..." 
+                        className="field" 
+                        style={{ 
+                          fontSize: 18, height: 140, resize: "none", padding: 24, 
+                          background: 'rgba(7, 18, 32, 0.6)', color: C.text,
+                          border: `1px solid ${C.borderHi}`, marginBottom: 24
+                        }}
+                      />
+                      
+                      {/* Clinical Rating Controls (Bring back self-rating) */}
+                      <div className="glass-hi au" style={{ padding: "24px 32px", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "space-between", background: 'rgba(255,255,255,0.03)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                           <span style={{ fontSize: 18 }}>⚖️</span>
+                           <span style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>Assign Clinical Score:</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          {[...Array(q.max_score + 1).keys()].map(s => (
+                            <button 
+                              key={s} 
+                              onClick={() => setScore(s)}
+                              style={{ 
+                                width: 44, height: 44, borderRadius: 12, border: `2px solid ${ans.awarded_score === s ? dm.color : 'rgba(255,255,255,0.1)'}`,
+                                background: ans.awarded_score === s ? dm.bg : 'transparent',
+                                color: ans.awarded_score === s ? dm.color : C.textDim,
+                                fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                              }}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:24, borderTop:"1px solid var(--border-subtle)" }}>
-                  <button className="btn-secondary" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
-                  <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-                    {current < questions.length - 1
-                      ? <button className="btn-primary" onClick={() => setCurrent(c => c + 1)}>Next Question →</button>
-                      : <button className="btn-primary" style={{ background:"var(--accent-blue)", color:"#fff" }} onClick={submit} disabled={submitting}>{submitting ? "Processing…" : "✓ Submit Assessment"}</button>
-                    }
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 32, borderTop: `1px solid ${C.border}` }}>
+                  <button className="btn-ghost" onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0}>
+                    ← Previous
+                  </button>
+                  <button 
+                    className="btn-primary" 
+                    onClick={next}
+                    style={{ minWidth: 180, height: 56, fontSize: 16 }}
+                  >
+                    {current === questions.length - 1 ? (submitting ? "Finalizing..." : "✓ Finish Assessment") : "Next Question →"}
+                  </button>
                 </div>
               </div>
             )}
+            
+            <div className="ai d4" style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: `1px dashed ${C.border}` }}>
+              <span style={{ fontSize: 18 }}>💡</span>
+              <span style={{ fontSize: 13, color: C.textFaint }}>{q?.hint}</span>
+            </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div style={{ width:300, flexShrink:0, display:"flex", flexDirection:"column", gap:20 }}>
-            {/* Domain progress */}
-            <div className="glass-panel animate-fade-up delay-100" style={{ padding:"24px" }}>
-              <div style={{ fontSize:12, fontWeight:600, color:"var(--text-tertiary)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:20 }}>Domain Progress</div>
-              {domains.map(domain => {
-                const qs = questions.filter(qu => qu.domain === domain);
-                const done = qs.filter(qu => answers[qu.id]?.raw_answer).length;
-                const m = DOMAIN_META[domain] || { color:"var(--accent-teal)", emoji:"📋" };
-                const active = q?.domain === domain;
-                return(
-                  <div key={domain} onClick={() => setCurrent(questions.indexOf(qs[0]))} style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16, cursor:"pointer", opacity: active ? 1 : 0.6, transition:"all 0.2s" }}>
-                    <span style={{ fontSize:18, width:24, textAlign:"center" }}>{m.emoji}</span>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:12, color: active ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: active ? 600 : 400, marginBottom:6 }}>{domain}</div>
-                      <div style={{ height:4, background:"var(--bg-main)", borderRadius:99, overflow:"hidden" }}>
-                        <div style={{ height:"100%", width:`${(done/qs.length)*100}%`, background:m.color, borderRadius:99, transition:"width 0.3s" }}/>
-                      </div>
-                    </div>
-                    <span style={{ fontSize:11, color:"var(--text-tertiary)", width:32, textAlign:"right", fontWeight:600 }}>{done}/{qs.length}</span>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Right Sidebar - Navigator */}
+          <div style={{ width: 280, flexShrink: 0 }}>
+             <div className="glass-hi au d2" style={{ padding: 24, borderRadius: 20, marginBottom: 24 }}>
+                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>Clinical Roadmap</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                   {questions.map((_, i) => {
+                     const isCurr = i === current;
+                     const isDone = answers[questions[i]?.id]?.awarded_score !== undefined || !!answers[questions[i]?.id]?.raw_answer;
+                     return (
+                       <div 
+                        key={i} 
+                        onClick={() => setCurrent(i)}
+                        style={{ 
+                          height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
+                          background: isCurr ? C.teal : isDone ? C.tealDim : 'transparent',
+                          color: isCurr ? C.bg : isDone ? C.teal : C.textFaint,
+                          border: `1px solid ${isCurr ? C.teal : isDone ? C.teal : C.border}`
+                        }}
+                       >
+                         {i + 1}
+                       </div>
+                     )
+                   })}
+                </div>
+             </div>
 
-            {/* Question map */}
-            <div className="glass-panel animate-fade-up delay-200" style={{ padding:"24px" }}>
-              <div style={{ fontSize:12, fontWeight:600, color:"var(--text-tertiary)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:16 }}>Question Navigator</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                {questions.map((qq, i) => {
-                  const m = DOMAIN_META[qq.domain] || { color:"var(--accent-teal)" };
-                  const isCurr = i === current;
-                  const isDone = !!answers[qq.id]?.raw_answer;
-                  return(
-                    <div key={qq.id} onClick={() => setCurrent(i)} 
-                      style={{
-                        width:32, height:32, borderRadius:8, fontSize:12, fontWeight:600,
-                        display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer",
-                        background: isCurr ? m.color : isDone ? "var(--bg-panel-hover)" : "transparent",
-                        color: isCurr ? "var(--bg-main)" : isDone ? m.color : "var(--text-tertiary)",
-                        border: `1px solid ${isCurr ? m.color : isDone ? m.color : "var(--border-subtle)"}`,
-                        transition:"all 0.2s ease",
-                      }}>{i+1}</div>
-                  );
-                })}
-              </div>
-            </div>
+             <div className="glass-hi ai d5" style={{ padding: 24, borderRadius: 20 }}>
+                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Clinical Methodology</h4>
+                <p style={{ fontSize: 13, color: C.textFaint, lineHeight: 1.6 }}>
+                  This module combines objective clinical metrics with human-in-the-loop validation. 
+                  Assign scores based on patient accuracy and response latency.
+                </p>
+             </div>
           </div>
 
         </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .page-container { font-family: 'Figtree', sans-serif; }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      `}} />
     </div>
   );
 }

@@ -152,13 +152,13 @@ def generate_pdf(session_id: int, user_id: int) -> bytes:
 
     summary_data = [
         [
-            Paragraph(f"<font size=32 color='#{_rgb_hex(stage_color)}'><b>{ad_pct}</b></font><font size=11 color='#888888'> / 100</font>", style("score", fontSize=9, fontName="Helvetica")),
-            Paragraph(f"<b>{session.stage_label}</b>", style("stage", fontSize=12, fontName="Helvetica-Bold", textColor=colors.Color(*stage_color))),
-            Paragraph(f"<b>{prog_arrow} {abs(prog_delta):.1f}%</b><br/><font size=8>{prog_label}</font>", style("prog", fontSize=11, fontName="Helvetica-Bold", textColor=prog_color)),
-            Paragraph(f"CI: {max(0,ad_pct-4.0):.1f} – {min(100,ad_pct+4.0):.1f}%<br/><font size=7>95% confidence interval</font>", S_small),
+            Paragraph(f"<font size=26 color='#{_rgb_hex(stage_color)}'><b>{ad_pct}</b></font><font size=11 color='#888888'> / 100</font>", style("score", leading=28)),
+            Paragraph(f"<b>{session.stage_label}</b>", style("stage", fontSize=11, fontName="Helvetica-Bold", textColor=colors.Color(*stage_color))),
+            Paragraph(f"<b>{prog_arrow} {abs(prog_delta):.1f}%</b><br/><font size=8>{prog_label}</font>", style("prog", fontSize=10, fontName="Helvetica-Bold", textColor=prog_color, leading=11)),
+            Paragraph(f"CI: {max(0,ad_pct-4.0):.1f} – {min(100,ad_pct+4.0):.1f}%<br/><font size=7 color='#666666'>95% confidence interval</font>", S_small),
         ]
     ]
-    sum_table = Table(summary_data, colWidths=[W*0.22, W*0.32, W*0.25, W*0.21])
+    sum_table = Table(summary_data, colWidths=[W*0.25, W*0.33, W*0.21, W*0.21])
     sum_table.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,-1), colors.Color(*LIGHT_BG)),
         ("BOX",        (0,0), (-1,-1), 1, colors.Color(*BORDER)),
@@ -267,22 +267,62 @@ def generate_pdf(session_id: int, user_id: int) -> bytes:
     story.append(Spacer(1, 10))
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 4. PROGRESSION SECTION
+    # 4. FUSION ANALYSIS
+    # ──────────────────────────────────────────────────────────────────────────
+    from services.fusion_service import compute_fusion
+    # Re-calculate fusion for detailed breakdown data
+    f_res = compute_fusion(demo_dict, cognitive.normalized_score if cognitive else 100, mri.mri_risk_score if mri else 0)
+
+    story.append(KeepTogether([
+        Paragraph("Fusion Breakdown & Interpretation", S_h2),
+        Paragraph(f_res.get("summary", ""), S_body),
+        Spacer(1, 8),
+        Table(
+            [
+                ["Modality", "Base Risk", "Weight", "Weighted Contribution"],
+                ["Demographics", f"{f_res['demographic_risk']:.1f}%", f"{f_res['weights']['demographic']*100:.0f}%", f"{f_res['demographic_weighted']:.1f}%"],
+                ["Cognitive",    f"{f_res['cognitive_risk']:.1f}%",     f"{f_res['weights']['cognitive']*100:.0f}%",   f"{f_res['cognitive_weighted']:.1f}%"],
+                ["MRI Analysis", f"{f_res['mri_risk']:.1f}%",          f"{f_res['weights']['mri']*100:.0f}%",         f"{f_res['mri_weighted']:.1f}%"],
+                ["Final Score",  "",                                  "",                                            f"{f_res['ad_percentage']:.1f}%"]
+            ],
+            colWidths=[W*0.3, W*0.2, W*0.2, W*0.3],
+            style=TableStyle([
+                ("BACKGROUND",    (0,0), (-1,0),  colors.Color(*NAVY)),
+                ("TEXTCOLOR",     (0,0), (-1,0),  colors.white),
+                ("FONTNAME",      (0,0), (-1,0),  "Helvetica-Bold"),
+                ("FONTNAME",      (0,-1),(-1,-1), "Helvetica-Bold"),
+                ("FONTSIZE",      (0,1), (-1,-1), 8),
+                ("GRID",          (0,0), (-1,-1), 0.3, colors.Color(*BORDER)),
+                ("PADDING",       (0,0), (-1,-1), 6),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white, colors.Color(*LIGHT_BG)]),
+                ("BACKGROUND",    (0,-1),(-1,-1), colors.Color(*TEAL_DIM)),
+                ("ALIGN",         (1,0), (-1,-1), "CENTER"),
+            ])
+        )
+    ]))
+    story.append(Spacer(1, 10))
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 5. PROGRESSION SECTION
     # ──────────────────────────────────────────────────────────────────────────
     if progression and progression.session_id_previous:
+        prev_sess = Session.query.get(progression.session_id_previous)
+        prev_cog  = CognitiveAssessment.query.filter_by(session_id=progression.session_id_previous).first()
+        prev_mri  = MRIScan.query.filter_by(session_id=progression.session_id_previous).first()
+
         story.append(Paragraph("Disease Progression", S_h2))
         prog_data = [
             ["Metric",             "Previous Session",                    "Current Session",                     "Change"],
-            ["AD Percentage",      f"{progression.prev_ad_percentage:.1f}%" if progression.prev_ad_percentage else "—",
+            ["AD Percentage",      f"{prev_sess.final_ad_percentage:.1f}%" if prev_sess and prev_sess.final_ad_percentage is not None else "—",
                                    f"{ad_pct}%",
                                    f"{prog_arrow} {abs(prog_delta):.1f}%"],
-            ["Cognitive Score",    f"{progression.prev_cognitive:.1f}" if progression.prev_cognitive else "—",
+            ["Cognitive Score",    f"{prev_cog.normalized_score:.1f}" if prev_cog else "—",
                                    f"{cognitive.normalized_score:.1f}" if cognitive else "—",
                                    f"{progression.delta_cognitive:+.1f}"],
-            ["MRI Stage",          progression.prev_mri_stage or "—",
+            ["MRI Stage",          prev_mri.ensemble_stage if prev_mri else "—",
                                    mri.ensemble_stage if mri else "—",
                                    "—"],
-            ["Assessment",         progression.prev_date[:10] if progression.prev_date else "—",
+            ["Assessment",         prev_sess.created_at.strftime("%Y-%m-%d") if prev_sess else "—",
                                    session.created_at.strftime("%Y-%m-%d"),
                                    prog_label],
         ]

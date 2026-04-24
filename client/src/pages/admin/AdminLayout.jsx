@@ -9,12 +9,12 @@ export { C, GLOBAL_CSS };
 export const T = C;
 export const getStage = (label) => {
   const map = {
-    'Non-Demented / Healthy':       { c:'#00D4AA', bg:'rgba(0,212,170,0.08)',  g:'A', short:'Healthy',   risk:10 },
-    'Very Mild Demented (MCI)':     { c:'#F5B942', bg:'rgba(245,185,66,0.08)', g:'B', short:'Very Mild', risk:35 },
-    "Mild Alzheimer's Disease":     { c:'#FCA549', bg:'rgba(252,165,73,0.08)', g:'C', short:'Mild',      risk:65 },
-    "Moderate Alzheimer's Disease": { c:'#FF4D6D', bg:'rgba(255,77,109,0.08)',  g:'D', short:'Moderate',  risk:90 },
+    'Non-demented':      { c:'#00D4AA', bg:'rgba(0,212,170,0.08)',  g:'A', short:'Healthy',   risk:10 },
+    'Very mild demented': { c:'#F5B942', bg:'rgba(245,185,66,0.08)', g:'B', short:'Very Mild', risk:35 },
+    'Mild demented':     { c:'#FCA549', bg:'rgba(252,165,73,0.08)', g:'C', short:'Mild',      risk:65 },
+    'Moderate demented': { c:'#FF4D6D', bg:'rgba(255,77,109,0.08)',  g:'D', short:'Moderate',  risk:90 },
   };
-  return map[label] || map['Non-Demented / Healthy'];
+  return map[label] || map['Non-demented'];
 };
 
 export const CSS_BASE = GLOBAL_CSS + `

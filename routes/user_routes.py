@@ -73,7 +73,7 @@ def dashboard():
     latest_rec = (
         Recommendation.query
         .filter_by(user_id=user_id)
-        .order_by(Recommendation.created_at.desc())
+        .order_by(Recommendation.id.desc())
         .first()
     )
 
@@ -81,7 +81,7 @@ def dashboard():
     latest_prog = (
         ProgressionRecord.query
         .filter_by(user_id=user_id)
-        .order_by(ProgressionRecord.created_at.desc())
+        .order_by(ProgressionRecord.id.desc())
         .first()
     )
 
@@ -89,7 +89,7 @@ def dashboard():
         "user":             user.to_dict(),
         "latest_session":   latest_session.to_dict() if latest_session else None,
         "progression":      latest_prog.to_dict()    if latest_prog    else None,
-        "recommendation":   latest_rec.to_dict()     if latest_rec     else None,
+        "recommendation":   _build_rec_summary(latest_rec),
         "session_trend": [
             {
                 "session_id":       s.id,

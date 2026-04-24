@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import AssessmentSidebar from "../components/AssessmentSidebar";
 
 const EDU = [
   {v:"postgraduate",l:"Postgrad",sub:"Masters / PhD",icon:"🎓"},
@@ -104,29 +105,8 @@ export default function Demographics() {
 
   return (
     <div className="page-container">
-      {/* Sidebar Navigation */}
-      <div className="sidebar">
-        <div style={{ padding:"24px 20px 16px", borderBottom:"1px solid var(--border-subtle)", marginBottom:20 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:"var(--accent-teal)", color:"var(--bg-main)", fontFamily:"'Instrument Serif',serif", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>N</div>
-            <div>
-              <div style={{ fontSize:16, fontWeight:600 }}>NeuroScan</div>
-              <div style={{ fontSize:11, color:"var(--accent-teal)" }}>AI Assessment</div>
-            </div>
-          </div>
-        </div>
-        {[
-          ["👤", "Demographics", "/demographics", "demographics"],
-          ["🧠", "Cognitive Test", "/cognitive-test", "cognitive"],
-          ["🔬", "MRI Upload", "/mri-upload", "mri"],
-          ["📊", "Results", "/dashboard", "results"]
-        ].map(([ic, lb, hr, id], i) => (
-          <a key={id} href={hr} className={`nav-link ${id === "demographics" ? "active" : ""}`}>
-            <span style={{ fontSize:16 }}>{ic}</span>
-            <span>{lb}</span>
-          </a>
-        ))}
-      </div>
+      <AssessmentSidebar activeStep="demographics" sessionId={sessionId} />
+
 
       {/* Main Content */}
       <div className="main-content">

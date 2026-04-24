@@ -224,11 +224,11 @@ export default function MRIUpload() {
                       <span style={{ fontSize:14, color:"var(--accent-teal)", fontWeight:500 }}>Completed</span>
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-                      <span style={{ fontSize:14, color:"var(--text-secondary)" }}>VGG16 Feature Extraction</span>
+                      <span style={{ fontSize:14, color:"var(--text-secondary)" }}>Custom 7-Layer CNN Inference</span>
                       <span style={{ fontSize:14, color:"var(--accent-teal)", fontWeight:500 }}>Completed</span>
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between" }}>
-                      <span style={{ fontSize:14, color:"var(--text-secondary)" }}>ResNet50 Deep Layers</span>
+                      <span style={{ fontSize:14, color:"var(--text-secondary)" }}>Stage Classification</span>
                       <span style={{ fontSize:14, color:"var(--accent-teal)", fontWeight:500 }}>Completed</span>
                     </div>
                   </div>

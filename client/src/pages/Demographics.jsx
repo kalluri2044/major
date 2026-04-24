@@ -61,7 +61,8 @@ export default function Demographics() {
 
   useEffect(() => {
     if (sessionId) return;
-    api.post("/user/sessions")
+    // If no session ID in URL, we create a fresh one
+    api.post("/user/sessions", { force: true })
       .then(({ data }) => {
         const sid = data.session?.id;
         if (sid) {

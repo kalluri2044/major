@@ -147,7 +147,7 @@ export default function AdminModelConfig() {
 
             <WeightSlider label="Demographics" icon="👤" accentColor="#60a5fa" description="Age, family history, lifestyle factors" value={w1} onChange={handleW1} />
             <WeightSlider label="Cognitive Assessment" icon="🧠" accentColor="#a78bfa" description="MMSE / MoCA normalized score" value={w2} onChange={handleW2} />
-            <WeightSlider label="MRI Analysis" icon="🔬" accentColor={T.teal} description="VGG16 + ResNet50 ensemble prediction" value={w3} onChange={handleW3} />
+            <WeightSlider label="MRI Analysis" icon="🔬" accentColor={T.teal} description="Custom 7-layer CNN analysis" value={w3} onChange={handleW3} />
 
             <div style={{ marginTop:4 }}>
               <div style={{ fontSize:11, color:T.slateD, marginBottom:8 }}>Weight Distribution</div>
@@ -192,18 +192,14 @@ export default function AdminModelConfig() {
 
         <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
           <Card>
-            <CardTitle sub="Choose which CNN model(s) to use for MRI prediction">Active Model Selection</CardTitle>
+            <CardTitle sub="The system is optimized for a custom 7-layer CNN architecture">Active Model</CardTitle>
             <div style={{ display:"flex", gap:10, marginBottom:16 }}>
-              <ModelCard id="vgg16" label="VGG16 Only" sub="Texture-focused" icon="🔷" selected={model==="vgg16"} onClick={() => setModel("vgg16")} />
-              <ModelCard id="resnet50" label="ResNet50 Only" sub="Structure-focused" icon="🔶" selected={model==="resnet50"} onClick={() => setModel("resnet50")} />
-              <ModelCard id="ensemble" label="Ensemble" sub="Soft-vote 45%+55%" icon="⚡" selected={model==="ensemble"} onClick={() => setModel("ensemble")} />
+              <ModelCard id="cnn" label="Custom CNN" sub="7-Layer Optimized" icon="🧠" selected={true} onClick={() => {}} />
             </div>
             <div style={{ padding:"12px 14px", borderRadius:10, background:"rgba(255,255,255,0.03)", border:`1px solid ${T.border}` }}>
-              <div style={{ fontSize:10, color:T.slateD, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.07em" }}>Selected: {model.toUpperCase()}</div>
+              <div style={{ fontSize:10, color:T.slateD, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.07em" }}>Status: Active</div>
               <div style={{ fontSize:12, color:"rgba(255,255,255,0.55)", lineHeight:1.6 }}>
-                {model === "ensemble" && "Soft-voting ensemble: VGG16 (45%) + ResNet50 (55%). Highest accuracy — recommended for production use."}
-                {model === "vgg16" && "VGG16 alone. Excels at texture-level pattern recognition. Faster inference but lower accuracy than ensemble."}
-                {model === "resnet50" && "ResNet50 alone. Better structural feature extraction with skip connections. Good balance of speed and accuracy."}
+                Using a lightweight 7-layer Convolutional Neural Network. Optimized for fast inference and binary/multi-class Alzheimer's detection. Suitable for real-time mobile and web deployment.
               </div>
             </div>
           </Card>

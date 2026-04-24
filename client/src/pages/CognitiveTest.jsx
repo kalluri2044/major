@@ -183,8 +183,8 @@ export default function CognitiveTest() {
                   <span style={{ fontSize: 12, color: C.textDim }}>MAX SCORE: {q.max_score} PTS</span>
                 </div>
 
-                <h2 style={{ fontSize: 28, fontWeight: 400, color: C.white, lineHeight: 1.4, marginBottom: 16 }}>{q.question}</h2>
-                <p style={{ fontSize: 16, color: C.textDim, marginBottom: 40, lineHeight: 1.6 }}>{q.instructions}</p>
+                <h2 style={{ fontSize: 32, fontWeight: 500, color: "#FFFFFF", lineHeight: 1.4, marginBottom: 16 }}>{q.question}</h2>
+                <p style={{ fontSize: 18, color: "rgba(255,255,255,0.85)", marginBottom: 40, lineHeight: 1.6 }}>{q.instructions}</p>
 
                 {/* Input Mapping */}
                 <div style={{ minHeight: 180, marginBottom: 40 }}>
@@ -224,17 +224,18 @@ export default function CognitiveTest() {
                         placeholder="Type response here..." 
                         className="field" 
                         style={{ 
-                          fontSize: 18, height: 140, resize: "none", padding: 24, 
-                          background: 'rgba(7, 18, 32, 0.6)', color: C.text,
-                          border: `1px solid ${C.borderHi}`, marginBottom: 24
+                          fontSize: 20, height: 140, resize: "none", padding: 24, 
+                          background: 'rgba(255, 255, 255, 0.05)', color: "#FFFFFF",
+                          border: `1px solid rgba(255,255,255,0.2)`, marginBottom: 24,
+                          boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)'
                         }}
                       />
                       
                       {/* Clinical Rating Controls (Bring back self-rating) */}
                       <div className="glass-hi au" style={{ padding: "24px 32px", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "space-between", background: 'rgba(255,255,255,0.03)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                           <span style={{ fontSize: 18 }}>⚖️</span>
-                           <span style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>Assign Clinical Score:</span>
+                           <span style={{ fontSize: 20 }}>⚖️</span>
+                           <span style={{ fontSize: 16, color: "#FFFFFF", fontWeight: 700 }}>Assign Clinical Score:</span>
                         </div>
                         <div style={{ display: "flex", gap: 10 }}>
                           {[...Array(q.max_score + 1).keys()].map(s => (
@@ -242,10 +243,10 @@ export default function CognitiveTest() {
                               key={s} 
                               onClick={() => setScore(s)}
                               style={{ 
-                                width: 44, height: 44, borderRadius: 12, border: `2px solid ${ans.awarded_score === s ? dm.color : 'rgba(255,255,255,0.1)'}`,
-                                background: ans.awarded_score === s ? dm.bg : 'transparent',
-                                color: ans.awarded_score === s ? dm.color : C.textDim,
-                                fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                                width: 50, height: 50, borderRadius: 12, border: `2px solid ${ans.awarded_score === s ? dm.color : 'rgba(255,255,255,0.2)'}`,
+                                background: ans.awarded_score === s ? dm.color : 'rgba(255,255,255,0.05)',
+                                color: ans.awarded_score === s ? C.bg : "#FFFFFF",
+                                fontSize: 18, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
                               }}
                             >
                               {s}

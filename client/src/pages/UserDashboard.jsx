@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { userAPI } from "../services/api";
+import api, { userAPI } from "../services/api";
 import { getStage } from "../components/DesignSystem";
 import { SideNav } from "../components/SideNav";
 
@@ -44,7 +44,10 @@ export default function UserDashboard() {
 
   const startNew = async () => {
     setStarting(true);
-    try { const { data: sd } = await userAPI.startSession(); navigate(`/demographics?session_id=${sd.session?.id}`); }
+    try { 
+      const { data: sd } = await api.post("/user/sessions", { force: true }); 
+      navigate(`/demographics?session_id=${sd.session?.id}`); 
+    }
     catch { setStarting(false); }
   };
 

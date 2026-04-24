@@ -28,13 +28,20 @@ export const C = {
 };
 
 export const STAGE = {
-  'Non-Demented / Healthy':       { c:'#00D4AA', bg:'rgba(0,212,170,0.08)',  g:'A', short:'Healthy',   risk:10 },
-  'Very Mild Demented (MCI)':     { c:'#F5B942', bg:'rgba(245,185,66,0.08)', g:'B', short:'Very Mild', risk:35 },
-  "Mild Alzheimer's Disease":     { c:'#FCA549', bg:'rgba(252,165,73,0.08)', g:'C', short:'Mild',      risk:65 },
-  "Moderate Alzheimer's Disease": { c:'#FF4D6D', bg:'rgba(255,77,109,0.08)',  g:'D', short:'Moderate',  risk:90 },
+  'Non-demented':       { c:'#00D4AA', bg:'rgba(0,212,170,0.08)',  g:'A', short:'Healthy',   risk:10 },
+  'Very mild demented': { c:'#F5B942', bg:'rgba(245,185,66,0.08)', g:'B', short:'Very Mild', risk:35 },
+  'Mild demented':      { c:'#FCA549', bg:'rgba(252,165,73,0.08)', g:'C', short:'Mild',      risk:65 },
+  'Moderate demented':  { c:'#FF4D6D', bg:'rgba(255,77,109,0.08)',  g:'D', short:'Moderate',  risk:90 },
 };
 
-export const getStage = (label) => STAGE[label] || STAGE['Non-Demented / Healthy'];
+export const getStage = (label) => {
+  if (!label) return STAGE['Non-demented'];
+  const l = label.toLowerCase();
+  if (l.includes('moderate'))  return STAGE['Moderate demented'];
+  if (l.includes('very mild')) return STAGE['Very mild demented'];
+  if (l.includes('mild'))      return STAGE['Mild demented'];
+  return STAGE['Non-demented'];
+};
 
 export const GLOBAL_CSS = `
 ${FONTS}

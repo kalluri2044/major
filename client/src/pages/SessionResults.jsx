@@ -3,12 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 const STAGE_META = {
-  "Non-Demented / Healthy":       { color:"var(--accent-teal)",   bg:"rgba(20, 184, 166, 0.1)",  grade:"A", emoji:"✅" },
-  "Very Mild Demented (MCI)":     { color:"var(--accent-amber)",  bg:"rgba(245, 158, 11, 0.1)",  grade:"B", emoji:"⚠️" },
-  "Mild Alzheimer's Disease":     { color:"#fb923c",              bg:"rgba(251, 146, 60, 0.1)",  grade:"C", emoji:"🔶" },
-  "Moderate Alzheimer's Disease": { color:"var(--accent-red)",    bg:"rgba(239, 68, 68, 0.1)",   grade:"D", emoji:"🔴" },
+  "Non-demented":       { color: "#00D4AA", bg: "rgba(0, 212, 170, 0.1)", grade: "A", emoji: "✅" },
+  "Very mild demented": { color: "#F5B942", bg: "rgba(245, 185, 66, 0.1)", grade: "B", emoji: "⚠️" },
+  "Mild demented":      { color: "#FCA549", bg: "rgba(252, 165, 73, 0.1)", grade: "C", emoji: "🔶" },
+  "Moderate demented":  { color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.1)", grade: "D", emoji: "🔴" },
 };
-const getStage = (l) => STAGE_META[l] || { color:"var(--accent-teal)", bg:"var(--bg-panel)", grade:"?", emoji:"📊" };
+const getStage = (label) => {
+  if (!label) return STAGE_META["Non-demented"];
+  const l = label.toLowerCase();
+  if (l.includes("moderate"))  return STAGE_META["Moderate demented"];
+  if (l.includes("very mild")) return STAGE_META["Very mild demented"];
+  if (l.includes("mild"))      return STAGE_META["Mild demented"];
+  return STAGE_META["Non-demented"];
+};
 
 function Arc({ score, color, size=180 }) {
   const [v,setV]=useState(0);

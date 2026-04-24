@@ -34,6 +34,45 @@ _class_indices = None   # {class_name: int_index}
 MODELS_AVAILABLE = os.path.exists(VGG16_PATH) and os.path.exists(RESNET_PATH)
 
 
+def _is_mri_image(arr: np.ndarray) -> bool:
+    """
+    Strict sanity check for cranial MRI characteristics.
+    """
+    # 1. Extreme Color/Saturation Check
+    # Even a tiny bit of color indicates a regular photo.
+    if arr.shape[-1] == 3:
+        color_variance = np.std(arr, axis=-1).mean()
+        if color_variance > 0.015: # Highly sensitive
+            return False
+            
+    # 2. Outer Edge Darkness Check
+    # MRI scans of heads are almost always centered with a black void around them.
+    # We check the 'border' area (outer 20 pixels) of the 224x224 image.
+    edge_mask = np.ones((224, 224), dtype=bool)
+    edge_mask[25:-25, 25:-25] = False # Create a 25-pixel border mask
+    
+    # Check average brightness of the border
+    edge_brightness = arr[edge_mask].mean()
+    if edge_brightness > 0.12: # If the border isn't dark, it's a regular photo
+        return False
+        
+    # 3. Structural Centering
+    # The 'brain' should be in the center 50% of the image.
+    center_area = arr[60:-60, 60:-60]
+    center_brightness = center_area.mean()
+    
+    # Center should be significantly brighter than the edges
+    if center_brightness < edge_brightness * 1.5:
+        return False
+
+    # 4. Total Darkness Ratio
+    black_pixels = np.sum(arr < 0.08) / arr.size
+    if black_pixels < 0.30: 
+        return False
+
+    return True
+
+
 def _load_models():
     """Load both models from disk (called once on first prediction)."""
     global _vgg16_model, _resnet_model, _class_indices
@@ -104,14 +143,18 @@ def predict_mri(file_bytes: bytes, filename: str = "", active_model: str = "ense
     -------
     dict with keys matching MRIScan model fields
     """
+    # Preprocess image → (224, 224, 3)
+    arr   = preprocess_bytes(file_bytes, filename)
+    
+    # Validate if it's an MRI (even for mock predictions)
+    if not _is_mri_image(arr):
+        raise ValueError("The uploaded image does not appear to be a valid cranial MRI scan. Please upload a clear head MRI.")
+
     # Development fallback when models aren't trained yet
     if not MODELS_AVAILABLE:
         return _mock_prediction()
 
     _load_models()
-
-    # Preprocess image → (1, 224, 224, 3)
-    arr   = preprocess_bytes(file_bytes, filename)
     inp   = to_model_input(arr)   # (1, 224, 224, 3)
 
     # ── VGG16 inference ────────────────────────────────────────────────────────

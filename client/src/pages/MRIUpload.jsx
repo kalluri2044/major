@@ -5,7 +5,7 @@ import AssessmentSidebar from "../components/AssessmentSidebar";
 
 export default function MRIUpload() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const urlSessionId = params.get("session_id");
 
   const fileRef = useRef(null);
@@ -21,15 +21,17 @@ export default function MRIUpload() {
   const [fusing, setFusing] = useState(false);
 
   // ── Auto-resolve session on mount ───────────────────────────────────────────
-  const resolveSession = useCallback(async () => {
-    if (urlSessionId) { setSessionId(urlSessionId); setSessionLoading(false); return; }
+  const resolveSession = useCallback(async (isForced = false) => {
+    if (urlSessionId && !isForced) { setSessionId(urlSessionId); setSessionLoading(false); return; }
     setSessionLoading(true); setSessionError("");
+    setFile(null); setPreview(null); setResult(null); setError("");
     try {
-      const { data } = await api.post("/user/sessions");
+      const { data } = await api.post("/user/sessions", { force: isForced });
       const sid = data.session?.id;
       if (sid) {
         setSessionId(String(sid));
-        window.history.replaceState(null, "", `/mri-upload?session_id=${sid}`);
+        // Properly update URL params so React Router sees the change
+        setParams({ session_id: sid });
       } else {
         setSessionError("Could not create a session. Please go to the dashboard.");
       }
@@ -38,18 +40,32 @@ export default function MRIUpload() {
     } finally {
       setSessionLoading(false);
     }
-  }, [urlSessionId]);
+  }, [urlSessionId, setParams]);
 
   useEffect(() => { resolveSession(); }, [resolveSession]);
 
   const pickFile = (f) => {
     if (!f) return;
     setFile(f); setResult(null); setError("");
+    
+    // Basic file type validation
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.dcm', '.nii', '.gz'];
+    const ext = f.name.toLowerCase().substring(f.name.lastIndexOf('.'));
+    
+    if (!validExtensions.includes(ext) && !f.type.startsWith("image/")) {
+      setError("Unsupported file format. Please upload a valid MRI image (JPEG, PNG, DICOM, or NIfTI).");
+      setFile(null);
+      setPreview(null);
+      return;
+    }
+
     if (f.type.startsWith("image/")) {
       const r = new FileReader();
       r.onload = (e) => setPreview(e.target.result);
       r.readAsDataURL(f);
-    } else { setPreview(null); }
+    } else { 
+      setPreview(null); 
+    }
   };
 
   const submit = async () => {
@@ -165,7 +181,16 @@ export default function MRIUpload() {
                   </div>
                 )}
 
-                {error && <div style={{ background:"rgba(239, 68, 68, 0.1)", border:"1px solid rgba(239, 68, 68, 0.3)", borderRadius:"var(--radius-md)", padding:"14px", color:"var(--accent-red)", fontSize:14, marginTop:16 }}>{error}</div>}
+                {error && (
+                  <div style={{ background:"rgba(239, 68, 68, 0.1)", border:"1px solid rgba(239, 68, 68, 0.3)", borderRadius:"var(--radius-md)", padding:"14px", color:"var(--accent-red)", fontSize:14, marginTop:16 }}>
+                    <div>{error}</div>
+                    {error.includes("already submitted") && (
+                      <button className="btn-secondary" onClick={() => resolveSession(true)} style={{ marginTop:12, width:"100%", padding:"8px", fontSize:12 }}>
+                        ✨ Start New Assessment Session →
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <button className={`btn-primary ${!file || loading ? "" : ""}`} disabled={!file || loading} onClick={submit} style={{ width:"100%", marginTop:24, background:"var(--accent-blue)", padding:"16px", fontSize:16 }}>
                   {loading ? (

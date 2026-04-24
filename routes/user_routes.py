@@ -156,15 +156,19 @@ def list_sessions():
 @jwt_required()
 def start_session():
     user_id = int(get_jwt_identity())
+    data    = request.get_json() or {}
+    force   = data.get("force", False)
 
-    # Check if there's already an incomplete session
-    incomplete = Session.query.filter_by(user_id=user_id, is_complete=False).first()
-    if incomplete:
-        return jsonify({
-            "message":    "Resuming existing session.",
-            "session":    incomplete.to_dict()
-        }), 200
+    # Only resume if not forcing a new one
+    if not force:
+        incomplete = Session.query.filter_by(user_id=user_id, is_complete=False).first()
+        if incomplete:
+            return jsonify({
+                "message":    "Resuming existing session.",
+                "session":    incomplete.to_dict()
+            }), 200
 
+    # Start fresh
     new_session = Session(user_id=user_id)
     db.session.add(new_session)
     db.session.commit()

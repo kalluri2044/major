@@ -214,13 +214,13 @@ def generate_pdf(session_id: int, user_id: int) -> bytes:
     # MRI column
     if mri:
         mri_rows = [
-            ["VGG16 Result",    mri.vgg16_prediction or "—"],
-            ["VGG16 Conf.",     f"{(mri.vgg16_confidence or 0)*100:.1f}%"],
-            ["ResNet50 Result", mri.resnet50_prediction or "—"],
-            ["ResNet50 Conf.",  f"{(mri.resnet50_confidence or 0)*100:.1f}%"],
-            ["Ensemble Stage",  mri.ensemble_stage or "—"],
-            ["Ensemble Conf.",  f"{(mri.ensemble_confidence or 0)*100:.1f}%"],
-            ["MRI Risk Score",  f"{mri.mri_risk_score or 0:.0f}/100"],
+            ["EfficientNet Result", mri.vgg16_prediction or "—"],
+            ["EfficientNet Conf. ", f"{(mri.vgg16_confidence or 0)*100:.1f}%"],
+            ["ResNet50 Result",    mri.resnet50_prediction or "—"],
+            ["ResNet50 Conf.",     f"{(mri.resnet50_confidence or 0)*100:.1f}%"],
+            ["Ensemble Stage",     mri.ensemble_stage or "—"],
+            ["Ensemble Conf.",     f"{(mri.ensemble_confidence or 0)*100:.1f}%"],
+            ["MRI Risk Score",     f"{mri.mri_risk_score or 0:.0f}/100"],
         ]
         mri_table_data = [["MRI Analysis", ""]] + mri_rows
     else:

@@ -220,9 +220,9 @@ export default function SessionResults() {
             {/* MRI */}
             {mri && (
               <Card className="animate-fade-up delay-200">
-                <SH sub="VGG16 + ResNet50 ensemble prediction">MRI Analysis</SH>
+                <SH sub="Deep learning feature extraction using optimized CNN">MRI Analysis</SH>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))",gap:16,marginTop:20}}>
-                  {[{label:"VGG16",val:mri?.vgg16_prediction,conf:mri?.vgg16_confidence,color:"var(--accent-blue)"},{label:"ResNet50",val:mri?.resnet50_prediction,conf:mri?.resnet50_confidence,color:"var(--accent-purple)"},{label:"Ensemble",val:mri?.ensemble_stage,conf:mri?.ensemble_confidence,color:"var(--accent-teal)"},{label:"MRI Risk",val:`${mri?.mri_risk_score||0}/100`,conf:null,color:sm.color}].map(m=>(
+                  {[{label:"EfficientNet",val:mri?.vgg16_prediction,conf:mri?.vgg16_confidence,color:"var(--accent-blue)"},{label:"ResNet50",val:mri?.resnet50_prediction,conf:mri?.vgg16_confidence,color:"var(--accent-purple)"},{label:"Ensemble",val:mri?.ensemble_stage,conf:mri?.ensemble_confidence,color:"var(--accent-teal)"},{label:"MRI Risk",val:`${mri?.mri_risk_score||0}/100`,conf:null,color:sm.color}].map(m=>(
                     <div key={m.label} style={{padding:"20px",background:"var(--bg-panel)",border:`1px solid var(--border-subtle)`,borderRadius:"var(--radius-md)",textAlign:"center"}}>
                       <div style={{fontSize:11,fontWeight:600,color:"var(--text-tertiary)",textTransform:"uppercase",letterSpacing:".07em",marginBottom:12}}>{m.label}</div>
                       <div style={{fontSize:15,fontWeight:600,color:m.color,marginBottom:m.conf?6:0}}>{m.val}</div>
